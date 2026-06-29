@@ -2,16 +2,70 @@
 <html lang="ar">
 <head>
     <meta charset="UTF-8">
-    <title>لعبة شوتر خفيفة</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>لعبة شوتر للموبايل</title>
     <style>
-        body { margin: 0; background: #222; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
-        canvas { background: #111; border: 2px solid #fff; }
+        body { 
+            margin: 0; 
+            background: #222; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            overflow: hidden; 
+            touch-action: none; /* يمنع اهتزاز الشاشة أثناء اللمس */
+        }
+        canvas { 
+            background: #111; 
+            max-width: 100%; 
+            max-height: 100%; 
+            box-sizing: border-box;
+        }
+        /* تصميم أزرار اللمس للموبايل */
+        .touch-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none; /* لكي لا تحجب الأزرار الضغط على الشاشة بالكامل */
+            width: calc(100% - 40px);
+        }
+        .joystick, .fire-btn {
+            width: 90px;
+            height: 90px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 3px solid #fff;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            font-family: sans-serif;
+            user-select: none;
+            pointer-events: auto; /* تفعيل اللمس للأزرار فقط */
+        }
+        .fire-btn {
+            background: rgba(255, 0, 0, 0.4);
+            border-color: #ff4444;
+        }
+        /* إخفاء الأزرار على أجهزة الكمبيوتر */
+        @media (min-width: 768px) {
+            .touch-controls { display: none; }
+        }
     </style>
     <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
 
 <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+<div class="touch-controls">
+    <div class="joystick" id="movePad">حرك</div>
+    <div class="fire-btn" id="fireBtn">إطلاق</div>
+</div>
 
 <script>
     const socket = io();
@@ -20,23 +74,19 @@
 
     let players = {};
     let bullets = [];
+    const movement = { up: false, down: false, left: false, right: false };
 
-    // استقبال بيانات اللاعبين من السيرفر
     socket.on('state', (state) => {
         players = state.players;
         bullets = state.bullets;
     });
 
-    // التحكم بالحركة
-    const movement = { up: false, down: false, left: false, right: false };
-    
+    // --- تحكم الكمبيوتر (لوحة المفاتيح) ---
     document.addEventListener('keydown', (e) => {
         if (e.key === 'w' || e.key === 'ArrowUp') movement.up = true;
         if (e.key === 's' || e.key === 'ArrowDown') movement.down = true;
         if (e.key === 'a' || e.key === 'ArrowLeft') movement.left = true;
         if (e.key === 'd' || e.key === 'ArrowRight') movement.right = true;
-        
-        // إرسال الحركة للسيرفر
         socket.emit('movement', movement);
     });
 
@@ -48,30 +98,71 @@
         socket.emit('movement', movement);
     });
 
-    // إطلاق النار عند الضغط على الماوس
-    document.addEventListener('click', (e) => {
-        const rect = canvas.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-        socket.emit('shoot', { targetX: mouseX, targetY: mouseY });
+    // --- تحكم الهاتف (اللمس) ---
+    const movePad = document.getElementById('movePad');
+    const fireBtn = document.getElementById('fireBtn');
+
+    // منطقة الحركة (تحريك إصبعك على الزر يوجه اللاعب)
+    movePad.addEventListener('touchmove', (e) => {
+        const touch = e.touches[0];
+        const rect = movePad.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        
+        // حساب اتجاه السحب
+        const dx = touch.clientX - centerX;
+        const dy = touch.clientY - centerY;
+
+        movement.left = dx < -15;
+        movement.right = dx > 15;
+        movement.up = dy < -15;
+        movement.down = dy > 15;
+
+        socket.emit('movement', movement);
     });
 
-    // حلقة الرسم (Render Loop)
+    movePad.addEventListener('touchend', () => {
+        // إيقاف الحركة عند رفع الإصبع
+        movement.left = movement.right = movement.up = movement.down = false;
+        socket.emit('movement', movement);
+    });
+
+    // زر إطلاق النار للهاتف
+    fireBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        // الإطلاق باتجاه عشوائي للأمام أو نحو أقرب عدو (هنا يطلق لليمين تلقائياً لتبسيط الكود)
+        let myPlayer = players[socket.id];
+        if (myPlayer) {
+            socket.emit('shoot', { targetX: myPlayer.x + 100, targetY: myPlayer.y + 10 });
+        }
+    });
+
+    // إطلاق النار بالماوس للكمبيوتر
+    document.addEventListener('click', (e) => {
+        if(e.target.tagName === 'CANVAS') {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
+            const mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+            socket.emit('shoot', { targetX: mouseX, targetY: mouseY });
+        }
+    });
+
+    // حلقة الرسم
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         // رسم اللاعبين
         for (let id in players) {
             let p = players[id];
-            ctx.fillStyle = id === socket.id ? 'lime' : 'red'; // لونك أخضر والأعداء أحمر
-            ctx.fillRect(p.x, p.y, 20, 20);
+            ctx.fillStyle = id === socket.id ? '#00ff00' : '#ff0000';
+            ctx.fillRect(p.x, p.y, 25, 25);
         }
 
         // رسم الطلقات
-        ctx.fillStyle = 'yellow';
+        ctx.fillStyle = '#ffff00';
         bullets.forEach(b => {
             ctx.beginPath();
-            ctx.arc(b.x, b.y, 4, 0, Math.PI * 2);
+            ctx.arc(b.x, b.y, 5, 0, Math.PI * 2);
             ctx.fill();
         });
 
