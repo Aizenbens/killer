@@ -26,18 +26,16 @@ function addLog(text) {
     if (logs.length > 5) logs.shift();
 }
 
-// توليد البوتات الذكية وتوزيعها حسب وضع اللعبة
+// تخصيص توليد البوتات بناءً على طلبك
 function spawnBots(mode) {
     bots = {};
     if (mode === 'single') {
-        // الوضع الفردي: معركة طاحنة بين البوتات الزرقاء والبوتات الحمراء
-        bots['bot_b1'] = { x: 100, y: 200, name: "آلي_أزرق_1", hp: 100, isBot: true, team: "blue", lastShot: 0 };
-        bots['bot_b2'] = { x: 100, y: 400, name: "آلي_أزرق_2", hp: 100, isBot: true, team: "blue", lastShot: 0 };
-        
-        bots['bot_r1'] = { x: 700, y: 200, name: "آلي_أحمر_1", hp: 100, isBot: true, team: "red", lastShot: 0 };
-        bots['bot_r2'] = { x: 700, y: 400, name: "آلي_أحمر_2", hp: 100, isBot: true, team: "red", lastShot: 0 };
+        // الوضع الفردي: اللاعب وحده ضد 3 بوتات حمراء تهاجمه هو فقط
+        bots['bot_r1'] = { x: 700, y: 150, name: "آلي_أحمر_1", hp: 100, isBot: true, team: "red", lastShot: 0 };
+        bots['bot_r2'] = { x: 700, y: 300, name: "آلي_أحمر_2", hp: 100, isBot: true, team: "red", lastShot: 0 };
+        bots['bot_r3'] = { x: 700, y: 450, name: "آلي_أحمر_3", hp: 100, isBot: true, team: "red", lastShot: 0 };
     } else {
-        // الوضع الجماعي: بوتات محترفة تدعم النقص في الفريقين
+        // الوضع الجماعي: بوت محترف لكل فريق لدعم اللاعبين
         bots['bot_m1'] = { x: 150, y: 150, name: "محترف_أزرق", hp: 100, isBot: true, team: "blue", lastShot: 0 };
         bots['bot_m2'] = { x: 650, y: 450, name: "محترف_أحمر", hp: 100, isBot: true, team: "red", lastShot: 0 };
     }
@@ -120,8 +118,9 @@ io.on('connection', (socket) => {
             players[socket.id].gameMode = data.mode;
             
             if(data.mode === 'single') {
-                players[socket.id].team = "blue";
+                players[socket.id].team = "blue"; // في اللعب الفردي اللاعب دائماً أزرق وحده
                 players[socket.id].x = 150;
+                players[socket.id].y = 300;
             }
             
             addLog(`📢 انضم ${data.name} للفريق ${players[socket.id].team === 'blue' ? 'الأزرق' : 'الأحمر'}`);
@@ -165,11 +164,10 @@ io.on('connection', (socket) => {
     });
 });
 
-// حلقة اللعبة (60 إطار في الثانية) مع نظام ذكاء اصطناعي محترف ومطوّر
+// حلقة اللعبة (60 إطار في الثانية) مع ذكاء اصطناعي محترف لملاحقة اللاعب
 setInterval(() => {
     let activePlayers = {};
 
-    // 1. تحريك اللاعبين البشر
     for (let id in players) {
         let p = players[id];
         if (p.hp > 0 && gameStatus === "active") {
@@ -181,7 +179,7 @@ setInterval(() => {
         activePlayers[id] = p;
     }
 
-    // 2. نظام تشغيل البوتات المحترفة (التحرك نحو الخصم والملاحقة الذكية)
+    // حركة البوتات المحترفة لملاحقة وحصار الخصوم حركياً وبصرياً
     for (let id in bots) {
         let b = bots[id];
         if (b.hp <= 0) continue;
@@ -190,7 +188,6 @@ setInterval(() => {
             let closestEnemy = null;
             let minDist = Infinity;
 
-            // البحث عن أقرب عدو حي (سواء كان لاعباً بشرياً أو بوتاً خصماً)
             for (let targetId in players) {
                 let target = players[targetId];
                 if (target.hp > 0 && target.team !== b.team) {
@@ -206,26 +203,21 @@ setInterval(() => {
                 }
             }
 
-            // إذا وجد البوت عدواً، يلاحقه ويطلق النار باحترافية
             if (closestEnemy) {
                 let angle = Math.atan2(closestEnemy.y - b.y, closestEnemy.x - b.x);
+                let speed = 2.5; 
                 
-                // حركة ذكية: البوت يقترب إذا كان الخصم بعيداً، ويناور بشكل دائري إذا كان قريباً
-                let speed = 2.5; // سرعة البوت الاحترافية
-                if (minDist > 200) {
+                if (minDist > 180) {
                     b.x += Math.cos(angle) * speed;
                     b.y += Math.sin(angle) * speed;
                 } else {
-                    // مناورة جانبية ليتفادى الرصاص
                     b.x += Math.cos(angle + Math.PI/2) * (speed * 0.8);
                     b.y += Math.sin(angle + Math.PI/2) * (speed * 0.8);
                 }
 
-                // حماية الحواف للبوتات
                 b.x = Math.max(25, Math.min(775, b.x));
                 b.y = Math.max(25, Math.min(575, b.y));
 
-                // إطلاق النار الاحترافي (كل 1.1 ثانية) بدقة نحو الهدف
                 let now = Date.now();
                 if (now - b.lastShot > 1100) {
                     bullets.push({
@@ -243,7 +235,6 @@ setInterval(() => {
         activePlayers[id] = b;
     }
 
-    // 3. تحديث مسار الرصاص وتصادم المقذوفات
     for (let i = bullets.length - 1; i >= 0; i--) {
         let b = bullets[i];
         b.x += b.vx;
