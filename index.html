@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>لعبة شوتر للموبايل</title>
+    <title>لعبة شوتر متطورة أونلاين</title>
     <style>
         body { 
             margin: 0; 
@@ -13,15 +13,40 @@
             align-items: center; 
             height: 100vh; 
             overflow: hidden; 
-            touch-action: none; /* يمنع اهتزاز الشاشة أثناء اللمس */
+            touch-action: none;
+            font-family: Arial, sans-serif;
+        }
+        #gameContainer {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            max-width: 100%;
+            max-height: 100%;
         }
         canvas { 
             background: #111; 
-            max-width: 100%; 
-            max-height: 100%; 
-            box-sizing: border-box;
+            border: 2px solid #fff;
+            width: 100%;
+            height: 100%;
         }
-        /* تصميم أزرار اللمس للموبايل */
+        /* قائمة الإشعارات الجانبية */
+        #logBox {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.6);
+            color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            max-width: 250px;
+            pointer-events: none;
+            direction: rtl;
+        }
+        .log-item { margin-bottom: 5px; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
+
+        /* أزرار الهواتف */
         .touch-controls {
             position: absolute;
             bottom: 20px;
@@ -29,38 +54,27 @@
             right: 20px;
             display: flex;
             justify-content: space-between;
-            pointer-events: none; /* لكي لا تحجب الأزرار الضغط على الشاشة بالكامل */
+            pointer-events: none;
             width: calc(100% - 40px);
         }
         .joystick, .fire-btn {
-            width: 90px;
-            height: 90px;
+            width: 85px; height: 85px;
             background: rgba(255, 255, 255, 0.2);
-            border: 3px solid #fff;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            font-weight: bold;
-            font-family: sans-serif;
-            user-select: none;
-            pointer-events: auto; /* تفعيل اللمس للأزرار فقط */
+            border: 3px solid #fff; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            color: white; font-weight: bold; user-select: none; pointer-events: auto;
         }
-        .fire-btn {
-            background: rgba(255, 0, 0, 0.4);
-            border-color: #ff4444;
-        }
-        /* إخفاء الأزرار على أجهزة الكمبيوتر */
-        @media (min-width: 768px) {
-            .touch-controls { display: none; }
-        }
+        .fire-btn { background: rgba(255, 0, 0, 0.4); border-color: #ff4444; }
+        @media (min-width: 768px) { .touch-controls { display: none; } }
     </style>
     <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
 
-<canvas id="gameCanvas" width="800" height="600"></canvas>
+<div id="gameContainer">
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div id="logBox"></div>
+</div>
 
 <div class="touch-controls">
     <div class="joystick" id="movePad">حرك</div>
@@ -68,76 +82,54 @@
 </div>
 
 <script>
+    // طلب اسم اللاعب عند فتح اللعبة
+    const username = prompt("أدخل اسم اللاعب الخاص بك:") || "لاعب_" + Math.floor(Math.random()*1000);
+
     const socket = io();
+    // إرسال الاسم للسيرفر
+    socket.emit('setPlayerName', username);
+
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
+    const logBox = document.getElementById('logBox');
 
     let players = {};
     let bullets = [];
     const movement = { up: false, down: false, left: false, right: false };
 
+    // استقبال تحديثات اللعبة
     socket.on('state', (state) => {
         players = state.players;
         bullets = state.bullets;
+        
+        // تحديث صندوق الإشعارات على الشاشة
+        logBox.innerHTML = '';
+        state.logs.forEach(log => {
+            const div = document.createElement('div');
+            div.className = 'log-item';
+            div.innerText = log.text;
+            logBox.appendChild(div);
+        });
     });
 
-    // --- تحكم الكمبيوتر (لوحة المفاتيح) ---
+    // --- تحكم لوحة المفاتيح (الكمبيوتر) ---
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'w' || e.key === 'ArrowUp') movement.up = true;
-        if (e.key === 's' || e.key === 'ArrowDown') movement.down = true;
-        if (e.key === 'a' || e.key === 'ArrowLeft') movement.left = true;
-        if (e.key === 'd' || e.key === 'ArrowRight') movement.right = true;
+        if (['w', 'ArrowUp'].includes(e.key)) movement.up = true;
+        if (['s', 'ArrowDown'].includes(e.key)) movement.down = true;
+        if (['a', 'ArrowLeft'].includes(e.key)) movement.left = true;
+        if (['d', 'ArrowRight'].includes(e.key)) movement.right = true;
         socket.emit('movement', movement);
     });
 
     document.addEventListener('keyup', (e) => {
-        if (e.key === 'w' || e.key === 'ArrowUp') movement.up = false;
-        if (e.key === 's' || e.key === 'ArrowDown') movement.down = false;
-        if (e.key === 'a' || e.key === 'ArrowLeft') movement.left = false;
-        if (e.key === 'd' || e.key === 'ArrowRight') movement.right = false;
+        if (['w', 'ArrowUp'].includes(e.key)) movement.up = false;
+        if (['s', 'ArrowDown'].includes(e.key)) movement.down = false;
+        if (['a', 'ArrowLeft'].includes(e.key)) movement.left = false;
+        if (['d', 'ArrowRight'].includes(e.key)) movement.right = false;
         socket.emit('movement', movement);
     });
 
-    // --- تحكم الهاتف (اللمس) ---
-    const movePad = document.getElementById('movePad');
-    const fireBtn = document.getElementById('fireBtn');
-
-    // منطقة الحركة (تحريك إصبعك على الزر يوجه اللاعب)
-    movePad.addEventListener('touchmove', (e) => {
-        const touch = e.touches[0];
-        const rect = movePad.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-        
-        // حساب اتجاه السحب
-        const dx = touch.clientX - centerX;
-        const dy = touch.clientY - centerY;
-
-        movement.left = dx < -15;
-        movement.right = dx > 15;
-        movement.up = dy < -15;
-        movement.down = dy > 15;
-
-        socket.emit('movement', movement);
-    });
-
-    movePad.addEventListener('touchend', () => {
-        // إيقاف الحركة عند رفع الإصبع
-        movement.left = movement.right = movement.up = movement.down = false;
-        socket.emit('movement', movement);
-    });
-
-    // زر إطلاق النار للهاتف
-    fireBtn.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        // الإطلاق باتجاه عشوائي للأمام أو نحو أقرب عدو (هنا يطلق لليمين تلقائياً لتبسيط الكود)
-        let myPlayer = players[socket.id];
-        if (myPlayer) {
-            socket.emit('shoot', { targetX: myPlayer.x + 100, targetY: myPlayer.y + 10 });
-        }
-    });
-
-    // إطلاق النار بالماوس للكمبيوتر
+    // إطلاق النار بالماوس
     document.addEventListener('click', (e) => {
         if(e.target.tagName === 'CANVAS') {
             const rect = canvas.getBoundingClientRect();
@@ -147,22 +139,72 @@
         }
     });
 
-    // حلقة الرسم
+    // --- تحكم اللمس (الهاتف) ---
+    const movePad = document.getElementById('movePad');
+    const fireBtn = document.getElementById('fireBtn');
+
+    movePad.addEventListener('touchmove', (e) => {
+        const touch = e.touches[0];
+        const rect = movePad.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        const dx = touch.clientX - centerX;
+        const dy = touch.clientY - centerY;
+
+        movement.left = dx < -15; movement.right = dx > 15;
+        movement.up = dy < -15; movement.down = dy > 15;
+        socket.emit('movement', movement);
+    });
+
+    movePad.addEventListener('touchend', () => {
+        movement.left = movement.right = movement.up = movement.down = false;
+        socket.emit('movement', movement);
+    });
+
+    fireBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        let myPlayer = players[socket.id];
+        if (myPlayer && myPlayer.hp > 0) {
+            // يطلق باتجاه اليمين مؤقتاً في الموبايل لسهولة الكود، يمكن مستقبلاً ضبطه باتجاه الحركة
+            socket.emit('shoot', { targetX: myPlayer.x + 100, targetY: myPlayer.y + 12 });
+        }
+    });
+
+    // حلقة الرسم الأساسية
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         // رسم اللاعبين
         for (let id in players) {
             let p = players[id];
-            ctx.fillStyle = id === socket.id ? '#00ff00' : '#ff0000';
+            if (p.hp <= 0) continue; // لا ترسم اللاعب إذا مات
+
+            // تحديد اللون (أخضر للاعبك، أحمر للأعداء)
+            const isMe = id === socket.id;
+            ctx.fillStyle = isMe ? '#00ff00' : '#ff3333';
             ctx.fillRect(p.x, p.y, 25, 25);
+
+            // 1. رسم اسم اللاعب فوق رأسه
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(p.name, p.x + 12.5, p.y - 15);
+
+            // 2. رسم شريط الصحة الأساسي (الخلفية حمراء)
+            ctx.fillStyle = '#550000';
+            ctx.fillRect(p.x - 5, p.y - 10, 35, 5);
+
+            // 3. رسم الصحة الحالية (الأخضر) بناءً على النسبة المتبقية
+            ctx.fillStyle = isMe ? '#00ff00' : '#ff3333';
+            const healthWidth = (p.hp / 100) * 35;
+            ctx.fillRect(p.x - 5, p.y - 10, healthWidth, 5);
         }
 
         // رسم الطلقات
         ctx.fillStyle = '#ffff00';
         bullets.forEach(b => {
             ctx.beginPath();
-            ctx.arc(b.x, b.y, 5, 0, Math.PI * 2);
+            ctx.arc(b.x, b.y, 4, 0, Math.PI * 2);
             ctx.fill();
         });
 
