@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>the war of زنادقة</title>
+    <title>لعبة المواجهة الكبرى أونلاين</title>
     <style>
         body { margin: 0; background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; touch-action: none; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         
-        /* الشاشة الرئيسية الأنيقة المعتمدة على الخلفية المرسلة */
         #mainMenu {
             position: absolute; width: 100%; height: 100%;
             background: url('wallpaper.jpg') no-repeat center center/cover;
@@ -26,13 +25,21 @@
         button { background: #fff; color: #000; font-weight: bold; cursor: pointer; transition: 0.2s; }
         button:hover { background: #ccc; transform: scale(1.02); }
 
-        /* حاوية اللعبة الويب والدردشة */
         #gameWrapper { display: none; position: relative; width: 800px; height: 600px; max-width: 100%; max-height: 100%; }
         canvas { border: 3px solid #fff; box-shadow: 0 0 20px rgba(255,255,255,0.3); width: 100%; height: 100%; }
         
+        /* عداد جولات علوي عصري للفرق */
+        #scoreboard {
+            position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.8); padding: 10px 25px; border-radius: 30px;
+            color: #fff; font-weight: bold; font-size: 18px; display: flex; gap: 20px;
+            border: 2px solid #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.5); pointer-events: none; z-index: 4;
+        }
+        .blue-team-score { color: #3498db; }
+        .red-team-score { color: #e74c3c; }
+
         #logBox { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: #fff; padding: 10px; border-radius: 5px; font-size: 13px; max-width: 220px; pointer-events: none; direction: rtl; }
         
-        /* صندوق نظام الدردشة المطور أسفل اليسار */
         #chatContainer {
             position: absolute; bottom: 15px; left: 15px; width: 260px;
             background: rgba(0,0,0,0.6); border-radius: 8px; padding: 10px; display: flex; flex-direction: column;
@@ -40,7 +47,6 @@
         #chatArea { height: 120px; overflow-y: auto; color: #fff; font-size: 13px; margin-bottom: 5px; text-align: right; direction: rtl; }
         #chatInput { padding: 6px; margin: 0; font-size: 13px; width: 100%; background: rgba(255,255,255,0.2); color: #fff; border: 1px solid #777; }
 
-        /* تحكم الموبايل */
         .touch-controls { position: absolute; bottom: 20px; left: 20px; right: 20px; display: flex; justify-content: space-between; pointer-events: none; width: calc(100% - 40px); z-index: 5; }
         .joystick, .fire-btn { width: 80px; height: 80px; background: rgba(255, 255, 255, 0.2); border: 3px solid #fff; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; user-select: none; pointer-events: auto; }
         .fire-btn { background: rgba(255, 0, 0, 0.4); border-color: #ff4444; }
@@ -49,6 +55,9 @@
     <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
+
+<audio id="starMusic" src="mario_star.mp3" loop></audio>
+<audio id="deathSound" src="mario_death.mp3"></audio>
 
 <div id="mainMenu">
     <div class="menu-card">
@@ -60,17 +69,17 @@
             <option value="single">لعب فردي (ضد البوتات)</option>
         </select>
         
-        <select id="gameMap">
-            <option value="العادية">خريطة: الساحة المظلمة</option>
-            <option value="الصحراء">خريطة: الصحراء القاحلة</option>
-            <option value="المصنع">خريطة: المصنع المهجور</option>
-        </select>
-        
         <button onclick="startGame()">ابدأ المعركة 🔥</button>
     </div>
 </div>
 
 <div id="gameWrapper">
+    <div id="scoreboard">
+        <span class="blue-team-score">الفريق الأزرق: <span id="blueScore">0</span></span>
+        <span>🆚</span>
+        <span class="red-team-score"><span id="redScore">0</span> :الفريق الأحمر</span>
+    </div>
+
     <canvas id="gameCanvas" width="800" height="600"></canvas>
     <div id="logBox"></div>
     
@@ -90,7 +99,7 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     
-    // إعداد تأثير الصوت البرمجي (صوت ليزر/طلقة نظيف لتجنب الروابط التالفة)
+    // صوت الليزر التكميلي عند إطلاق الرصاص
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     function playLaserSound() {
         if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -101,7 +110,7 @@
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(400, audioCtx.currentTime);
         osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.15);
-        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
         gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
         osc.start();
         osc.stop(audioCtx.currentTime + 0.15);
@@ -110,28 +119,48 @@
     let players = {};
     let bullets = [];
     let mapBgColor = '#111';
+    let myTeam = "blue";
     const movement = { up: false, down: false, left: false, right: false };
 
     function startGame() {
-        const name = document.getElementById('playerName').value.trim() || "جندي_" + Math.floor(Math.random()*100);
+        const name = document.getElementById('playerName').value.trim() || "بطل_" + Math.floor(Math.random()*100);
         const mode = document.getElementById('gameMode').value;
-        const map = document.getElementById('gameMap').value;
 
         document.getElementById('mainMenu').style.display = 'none';
         document.getElementById('gameWrapper').style.display = 'block';
         if(window.innerWidth < 768) document.getElementById('touchUI').style.display = 'flex';
 
-        socket.emit('initGame', { name, mode, map });
+        // تشغيل أغنية البداية Mario Star Power المضافة في الخلفية بشكل متكرر
+        const starMusic = document.getElementById('starMusic');
+        starMusic.volume = 0.25;
+        starMusic.play().catch(e => console.log("المتصفح حظر التشغيل الأولي:", e));
+
+        socket.emit('initGame', { name, mode, team: myTeam });
     }
 
-    // استقبال الصوت من السيرفر
+    socket.on('teamAssignment', (team) => {
+        myTeam = team;
+    });
+
     socket.on('playShootSound', () => playLaserSound());
 
-    // استقبال تحديثات اللعبة والخرائط والإشعارات
+    // استقبال حدث الموت لتشغيل صوت الخسارة Mario Death خصيصاً للشخص الخاسر
+    socket.on('playerDied', () => {
+        const deathSound = document.getElementById('deathSound');
+        deathSound.volume = 0.6;
+        deathSound.play();
+    });
+
     socket.on('state', (state) => {
         players = state.players;
         bullets = state.bullets;
         if(state.mapConfig) mapBgColor = state.mapConfig.color;
+
+        // تحديث النقاط والجولات على اللوحة العلوية
+        if(state.score) {
+            document.getElementById('blueScore').innerText = state.score.blue;
+            document.getElementById('redScore').innerText = state.score.red;
+        }
 
         const logBox = document.getElementById('logBox');
         logBox.innerHTML = '';
@@ -142,7 +171,6 @@
         });
     });
 
-    // التعامل مع الدردشة
     const chatInput = document.getElementById('chatInput');
     const chatArea = document.getElementById('chatArea');
 
@@ -155,14 +183,14 @@
 
     socket.on('chatUpdate', (data) => {
         const div = document.createElement('div');
-        div.innerHTML = `<strong>${data.name}:</strong> ${data.text}`;
+        let tColor = data.team === "blue" ? "#3498db" : "#e74c3c";
+        div.innerHTML = `<strong style="color: ${tColor}">${data.name}:</strong> ${data.text}`;
         chatArea.appendChild(div);
         chatArea.scrollTop = chatArea.scrollHeight;
     });
 
-    // التحكم بالكمبيوتر
     document.addEventListener('keydown', (e) => {
-        if(document.activeElement === chatInput) return; // تعطيل التحرك أثناء الكتابة في الشات
+        if(document.activeElement === chatInput) return;
         if (['w', 'ArrowUp'].includes(e.key)) movement.up = true;
         if (['s', 'ArrowDown'].includes(e.key)) movement.down = true;
         if (['a', 'ArrowLeft'].includes(e.key)) movement.left = true;
@@ -187,7 +215,6 @@
         }
     });
 
-    // تحكم اللمس للهواتف
     const movePad = document.getElementById('movePad');
     movePad.addEventListener('touchmove', (e) => {
         const touch = e.touches[0];
@@ -208,61 +235,53 @@
         if (myPlayer && myPlayer.hp > 0) socket.emit('shoot', { targetX: myPlayer.x + 120, targetY: myPlayer.y });
     });
 
-    // حلقة الرسم وتحسين الأشكال البرمجية للشخصيات والرصاص والدمار
     function draw() {
         ctx.fillStyle = mapBgColor;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // رسم اللاعبين كشخصيات دائرية عسكرية متطورة مع اتجاهات
         for (let id in players) {
             let p = players[id];
             if (p.hp <= 0) continue;
 
-            const isMe = id === socket.id;
-            
-            // رسم ظل الشخصية
             ctx.beginPath();
             ctx.arc(p.x, p.y + 4, 15, 0, Math.PI * 2);
             ctx.fillStyle = 'rgba(0,0,0,0.3)';
             ctx.fill();
 
-            // رسم جسم الشخصية الدائري المحسن
             ctx.beginPath();
             ctx.arc(p.x, p.y, 15, 0, Math.PI * 2);
-            ctx.fillStyle = p.isBot ? '#e67e22' : (isMe ? '#2ecc71' : '#e74c3c');
+            // تحديد لون الجسم بناءً على فريقه (أزرق #3498db أو أحمر #e74c3c)
+            ctx.fillStyle = p.team === "blue" ? '#3498db' : '#e74c3c';
             ctx.strokeStyle = '#fff';
             ctx.lineWidth = 2;
             ctx.fill();
             ctx.stroke();
 
-            // رسم النواة المركزية للشخصية
             ctx.beginPath();
             ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
             ctx.fillStyle = '#fff';
             ctx.fill();
 
-            // كتابة الاسم
             ctx.fillStyle = '#ffffff';
             ctx.font = 'bold 12px Arial';
             ctx.textAlign = 'center';
             ctx.fillText(p.name, p.x, p.y - 25);
 
-            // تصميم شريط الصحة العصري
             ctx.fillStyle = 'rgba(255,255,255,0.2)';
             ctx.fillRect(p.x - 20, p.y - 18, 40, 5);
-            ctx.fillStyle = isMe ? '#2ecc71' : '#e74c3c';
+            ctx.fillStyle = p.team === "blue" ? '#3498db' : '#e74c3c';
             ctx.fillRect(p.x - 20, p.y - 18, (p.hp / 100) * 40, 5);
         }
 
-        // رسم الرصاص بشكل مضيء وتأثير التوهج الناري (Glow effect)
         bullets.forEach(b => {
             ctx.save();
             ctx.shadowBlur = 10;
-            ctx.shadowColor = '#f1c40f';
+            // لون الرصاص يتبع لون فريق مطلقها لتمييز المقذوفات
+            ctx.shadowColor = b.team === "blue" ? '#3498db' : '#e74c3c';
             ctx.beginPath();
             ctx.arc(b.x, b.y, 5, 0, Math.PI * 2);
-            ctx.fillStyle = '#f1c40f';
+            ctx.fillStyle = b.team === "blue" ? '#85c1e9' : '#f1948a';
             ctx.fill();
             ctx.restore();
         });
