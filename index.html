@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>لعبة شوتر خفيفة</title>
+    <style>
+        body { margin: 0; background: #222; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+        canvas { background: #111; border: 2px solid #fff; }
+    </style>
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+
+<canvas id="gameCanvas" width="800" height="600"></canvas>
+
+<script>
+    const socket = io();
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let players = {};
+    let bullets = [];
+
+    // استقبال بيانات اللاعبين من السيرفر
+    socket.on('state', (state) => {
+        players = state.players;
+        bullets = state.bullets;
+    });
+
+    // التحكم بالحركة
+    const movement = { up: false, down: false, left: false, right: false };
+    
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'w' || e.key === 'ArrowUp') movement.up = true;
+        if (e.key === 's' || e.key === 'ArrowDown') movement.down = true;
+        if (e.key === 'a' || e.key === 'ArrowLeft') movement.left = true;
+        if (e.key === 'd' || e.key === 'ArrowRight') movement.right = true;
+        
+        // إرسال الحركة للسيرفر
+        socket.emit('movement', movement);
+    });
+
+    document.addEventListener('keyup', (e) => {
+        if (e.key === 'w' || e.key === 'ArrowUp') movement.up = false;
+        if (e.key === 's' || e.key === 'ArrowDown') movement.down = false;
+        if (e.key === 'a' || e.key === 'ArrowLeft') movement.left = false;
+        if (e.key === 'd' || e.key === 'ArrowRight') movement.right = false;
+        socket.emit('movement', movement);
+    });
+
+    // إطلاق النار عند الضغط على الماوس
+    document.addEventListener('click', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        socket.emit('shoot', { targetX: mouseX, targetY: mouseY });
+    });
+
+    // حلقة الرسم (Render Loop)
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // رسم اللاعبين
+        for (let id in players) {
+            let p = players[id];
+            ctx.fillStyle = id === socket.id ? 'lime' : 'red'; // لونك أخضر والأعداء أحمر
+            ctx.fillRect(p.x, p.y, 20, 20);
+        }
+
+        // رسم الطلقات
+        ctx.fillStyle = 'yellow';
+        bullets.forEach(b => {
+            ctx.beginPath();
+            ctx.arc(b.x, b.y, 4, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        requestAnimationFrame(draw);
+    }
+    draw();
+</script>
+</body>
+</html>
