@@ -3,67 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>لعبة شوتر متطورة أونلاين</title>
+    <title>the war of زنادقة</title>
     <style>
-        body { 
-            margin: 0; 
-            background: #222; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh; 
-            overflow: hidden; 
-            touch-action: none;
-            font-family: Arial, sans-serif;
+        body { margin: 0; background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; touch-action: none; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        /* الشاشة الرئيسية الأنيقة المعتمدة على الخلفية المرسلة */
+        #mainMenu {
+            position: absolute; width: 100%; height: 100%;
+            background: url('wallpaper.jpg') no-repeat center center/cover;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 10; color: #fff; text-shadow: 0 2px 10px rgba(0,0,0,0.8);
         }
-        #gameContainer {
-            position: relative;
-            width: 800px;
-            height: 600px;
-            max-width: 100%;
-            max-height: 100%;
+        .menu-card {
+            background: rgba(0, 0, 0, 0.75); padding: 30px; border-radius: 15px;
+            box-shadow: 0 0 25px rgba(255,255,255,0.1); width: 320px; text-align: center; border: 1px solid rgba(255,255,255,0.2);
         }
-        canvas { 
-            background: #111; 
-            border: 2px solid #fff;
-            width: 100%;
-            height: 100%;
+        h1 { margin-top: 0; font-size: 28px; letter-spacing: 2px; color: #f3f3f3; }
+        input, select, button {
+            width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box;
         }
-        /* قائمة الإشعارات الجانبية */
-        #logBox {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.6);
-            color: #fff;
-            padding: 10px;
-            border-radius: 5px;
-            font-size: 14px;
-            max-width: 250px;
-            pointer-events: none;
-            direction: rtl;
-        }
-        .log-item { margin-bottom: 5px; animation: fadeIn 0.3s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
+        input, select { background: rgba(255,255,255,0.9); color: #222; font-weight: bold; }
+        button { background: #fff; color: #000; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        button:hover { background: #ccc; transform: scale(1.02); }
 
-        /* أزرار الهواتف */
-        .touch-controls {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            right: 20px;
-            display: flex;
-            justify-content: space-between;
-            pointer-events: none;
-            width: calc(100% - 40px);
+        /* حاوية اللعبة الويب والدردشة */
+        #gameWrapper { display: none; position: relative; width: 800px; height: 600px; max-width: 100%; max-height: 100%; }
+        canvas { border: 3px solid #fff; box-shadow: 0 0 20px rgba(255,255,255,0.3); width: 100%; height: 100%; }
+        
+        #logBox { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: #fff; padding: 10px; border-radius: 5px; font-size: 13px; max-width: 220px; pointer-events: none; direction: rtl; }
+        
+        /* صندوق نظام الدردشة المطور أسفل اليسار */
+        #chatContainer {
+            position: absolute; bottom: 15px; left: 15px; width: 260px;
+            background: rgba(0,0,0,0.6); border-radius: 8px; padding: 10px; display: flex; flex-direction: column;
         }
-        .joystick, .fire-btn {
-            width: 85px; height: 85px;
-            background: rgba(255, 255, 255, 0.2);
-            border: 3px solid #fff; border-radius: 50%;
-            display: flex; justify-content: center; align-items: center;
-            color: white; font-weight: bold; user-select: none; pointer-events: auto;
-        }
+        #chatArea { height: 120px; overflow-y: auto; color: #fff; font-size: 13px; margin-bottom: 5px; text-align: right; direction: rtl; }
+        #chatInput { padding: 6px; margin: 0; font-size: 13px; width: 100%; background: rgba(255,255,255,0.2); color: #fff; border: 1px solid #777; }
+
+        /* تحكم الموبايل */
+        .touch-controls { position: absolute; bottom: 20px; left: 20px; right: 20px; display: flex; justify-content: space-between; pointer-events: none; width: calc(100% - 40px); z-index: 5; }
+        .joystick, .fire-btn { width: 80px; height: 80px; background: rgba(255, 255, 255, 0.2); border: 3px solid #fff; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; user-select: none; pointer-events: auto; }
         .fire-btn { background: rgba(255, 0, 0, 0.4); border-color: #ff4444; }
         @media (min-width: 768px) { .touch-controls { display: none; } }
     </style>
@@ -71,49 +50,119 @@
 </head>
 <body>
 
-<div id="gameContainer">
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
-    <div id="logBox"></div>
+<div id="mainMenu">
+    <div class="menu-card">
+        <h1>المواجهة الكبرى</h1>
+        <input type="text" id="playerName" placeholder="أدخل اسم البطل..." maxlength="12">
+        
+        <select id="gameMode">
+            <option value="multi">لعب جماعي (أونلاين)</option>
+            <option value="single">لعب فردي (ضد البوتات)</option>
+        </select>
+        
+        <select id="gameMap">
+            <option value="العادية">خريطة: الساحة المظلمة</option>
+            <option value="الصحراء">خريطة: الصحراء القاحلة</option>
+            <option value="المصنع">خريطة: المصنع المهجور</option>
+        </select>
+        
+        <button onclick="startGame()">ابدأ المعركة 🔥</button>
+    </div>
 </div>
 
-<div class="touch-controls">
+<div id="gameWrapper">
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div id="logBox"></div>
+    
+    <div id="chatContainer">
+        <div id="chatArea"></div>
+        <input type="text" id="chatInput" placeholder="اكتب رسالة واضغط Enter..." maxlength="40">
+    </div>
+</div>
+
+<div class="touch-controls" id="touchUI" style="display: none;">
     <div class="joystick" id="movePad">حرك</div>
     <div class="fire-btn" id="fireBtn">إطلاق</div>
 </div>
 
 <script>
-    // طلب اسم اللاعب عند فتح اللعبة
-    const username = prompt("أدخل اسم اللاعب الخاص بك:") || "لاعب_" + Math.floor(Math.random()*1000);
-
     const socket = io();
-    // إرسال الاسم للسيرفر
-    socket.emit('setPlayerName', username);
-
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
-    const logBox = document.getElementById('logBox');
+    
+    // إعداد تأثير الصوت البرمجي (صوت ليزر/طلقة نظيف لتجنب الروابط التالفة)
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playLaserSound() {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.15);
+    }
 
     let players = {};
     let bullets = [];
+    let mapBgColor = '#111';
     const movement = { up: false, down: false, left: false, right: false };
 
-    // استقبال تحديثات اللعبة
+    function startGame() {
+        const name = document.getElementById('playerName').value.trim() || "جندي_" + Math.floor(Math.random()*100);
+        const mode = document.getElementById('gameMode').value;
+        const map = document.getElementById('gameMap').value;
+
+        document.getElementById('mainMenu').style.display = 'none';
+        document.getElementById('gameWrapper').style.display = 'block';
+        if(window.innerWidth < 768) document.getElementById('touchUI').style.display = 'flex';
+
+        socket.emit('initGame', { name, mode, map });
+    }
+
+    // استقبال الصوت من السيرفر
+    socket.on('playShootSound', () => playLaserSound());
+
+    // استقبال تحديثات اللعبة والخرائط والإشعارات
     socket.on('state', (state) => {
         players = state.players;
         bullets = state.bullets;
-        
-        // تحديث صندوق الإشعارات على الشاشة
+        if(state.mapConfig) mapBgColor = state.mapConfig.color;
+
+        const logBox = document.getElementById('logBox');
         logBox.innerHTML = '';
         state.logs.forEach(log => {
             const div = document.createElement('div');
-            div.className = 'log-item';
             div.innerText = log.text;
             logBox.appendChild(div);
         });
     });
 
-    // --- تحكم لوحة المفاتيح (الكمبيوتر) ---
+    // التعامل مع الدردشة
+    const chatInput = document.getElementById('chatInput');
+    const chatArea = document.getElementById('chatArea');
+
+    chatInput.addEventListener('keydown', (e) => {
+        if(e.key === 'Enter' && chatInput.value.trim() !== "") {
+            socket.emit('chatMessage', chatInput.value.trim());
+            chatInput.value = '';
+        }
+    });
+
+    socket.on('chatUpdate', (data) => {
+        const div = document.createElement('div');
+        div.innerHTML = `<strong>${data.name}:</strong> ${data.text}`;
+        chatArea.appendChild(div);
+        chatArea.scrollTop = chatArea.scrollHeight;
+    });
+
+    // التحكم بالكمبيوتر
     document.addEventListener('keydown', (e) => {
+        if(document.activeElement === chatInput) return; // تعطيل التحرك أثناء الكتابة في الشات
         if (['w', 'ArrowUp'].includes(e.key)) movement.up = true;
         if (['s', 'ArrowDown'].includes(e.key)) movement.down = true;
         if (['a', 'ArrowLeft'].includes(e.key)) movement.left = true;
@@ -129,7 +178,6 @@
         socket.emit('movement', movement);
     });
 
-    // إطلاق النار بالماوس
     document.addEventListener('click', (e) => {
         if(e.target.tagName === 'CANVAS') {
             const rect = canvas.getBoundingClientRect();
@@ -139,73 +187,84 @@
         }
     });
 
-    // --- تحكم اللمس (الهاتف) ---
+    // تحكم اللمس للهواتف
     const movePad = document.getElementById('movePad');
-    const fireBtn = document.getElementById('fireBtn');
-
     movePad.addEventListener('touchmove', (e) => {
         const touch = e.touches[0];
         const rect = movePad.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-        const dx = touch.clientX - centerX;
-        const dy = touch.clientY - centerY;
-
+        const dx = touch.clientX - (rect.left + rect.width / 2);
+        const dy = touch.clientY - (rect.top + rect.height / 2);
         movement.left = dx < -15; movement.right = dx > 15;
         movement.up = dy < -15; movement.down = dy > 15;
         socket.emit('movement', movement);
     });
-
     movePad.addEventListener('touchend', () => {
         movement.left = movement.right = movement.up = movement.down = false;
         socket.emit('movement', movement);
     });
-
-    fireBtn.addEventListener('touchstart', (e) => {
+    document.getElementById('fireBtn').addEventListener('touchstart', (e) => {
         e.preventDefault();
         let myPlayer = players[socket.id];
-        if (myPlayer && myPlayer.hp > 0) {
-            // يطلق باتجاه اليمين مؤقتاً في الموبايل لسهولة الكود، يمكن مستقبلاً ضبطه باتجاه الحركة
-            socket.emit('shoot', { targetX: myPlayer.x + 100, targetY: myPlayer.y + 12 });
-        }
+        if (myPlayer && myPlayer.hp > 0) socket.emit('shoot', { targetX: myPlayer.x + 120, targetY: myPlayer.y });
     });
 
-    // حلقة الرسم الأساسية
+    // حلقة الرسم وتحسين الأشكال البرمجية للشخصيات والرصاص والدمار
     function draw() {
+        ctx.fillStyle = mapBgColor;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // رسم اللاعبين
+        // رسم اللاعبين كشخصيات دائرية عسكرية متطورة مع اتجاهات
         for (let id in players) {
             let p = players[id];
-            if (p.hp <= 0) continue; // لا ترسم اللاعب إذا مات
+            if (p.hp <= 0) continue;
 
-            // تحديد اللون (أخضر للاعبك، أحمر للأعداء)
             const isMe = id === socket.id;
-            ctx.fillStyle = isMe ? '#00ff00' : '#ff3333';
-            ctx.fillRect(p.x, p.y, 25, 25);
+            
+            // رسم ظل الشخصية
+            ctx.beginPath();
+            ctx.arc(p.x, p.y + 4, 15, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.fill();
 
-            // 1. رسم اسم اللاعب فوق رأسه
+            // رسم جسم الشخصية الدائري المحسن
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 15, 0, Math.PI * 2);
+            ctx.fillStyle = p.isBot ? '#e67e22' : (isMe ? '#2ecc71' : '#e74c3c');
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.fill();
+            ctx.stroke();
+
+            // رسم النواة المركزية للشخصية
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+            ctx.fillStyle = '#fff';
+            ctx.fill();
+
+            // كتابة الاسم
             ctx.fillStyle = '#ffffff';
-            ctx.font = '12px Arial';
+            ctx.font = 'bold 12px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText(p.name, p.x + 12.5, p.y - 15);
+            ctx.fillText(p.name, p.x, p.y - 25);
 
-            // 2. رسم شريط الصحة الأساسي (الخلفية حمراء)
-            ctx.fillStyle = '#550000';
-            ctx.fillRect(p.x - 5, p.y - 10, 35, 5);
-
-            // 3. رسم الصحة الحالية (الأخضر) بناءً على النسبة المتبقية
-            ctx.fillStyle = isMe ? '#00ff00' : '#ff3333';
-            const healthWidth = (p.hp / 100) * 35;
-            ctx.fillRect(p.x - 5, p.y - 10, healthWidth, 5);
+            // تصميم شريط الصحة العصري
+            ctx.fillStyle = 'rgba(255,255,255,0.2)';
+            ctx.fillRect(p.x - 20, p.y - 18, 40, 5);
+            ctx.fillStyle = isMe ? '#2ecc71' : '#e74c3c';
+            ctx.fillRect(p.x - 20, p.y - 18, (p.hp / 100) * 40, 5);
         }
 
-        // رسم الطلقات
-        ctx.fillStyle = '#ffff00';
+        // رسم الرصاص بشكل مضيء وتأثير التوهج الناري (Glow effect)
         bullets.forEach(b => {
+            ctx.save();
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#f1c40f';
             ctx.beginPath();
-            ctx.arc(b.x, b.y, 4, 0, Math.PI * 2);
+            ctx.arc(b.x, b.y, 5, 0, Math.PI * 2);
+            ctx.fillStyle = '#f1c40f';
             ctx.fill();
+            ctx.restore();
         });
 
         requestAnimationFrame(draw);
