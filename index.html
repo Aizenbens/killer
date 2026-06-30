@@ -7,7 +7,6 @@
     <style>
         body { margin: 0; background: #05020c; overflow: hidden; touch-action: none; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; user-select: none; }
         
-        /* واجهة رئيسية بألوان زرقاء وبنفسجية نيوني مذهلة */
         #mainMenu {
             position: absolute; width: 100%; height: 100%;
             background: radial-gradient(circle at center, #1b0933 0%, #06020f 100%);
@@ -33,11 +32,9 @@
         
         button { background: linear-gradient(90deg, #9b59b6, #3498db); color: #fff; font-weight: 800; cursor: pointer; letter-spacing: 2px; box-shadow: 0 6px 20px rgba(155,89,182,0.4); text-transform: uppercase; }
         button:hover { background: linear-gradient(90deg, #3498db, #9b59b6); transform: translateY(-3px) scale(1.02); box-shadow: 0 8px 25px rgba(52,152,219,0.6); }
-        button:active { transform: translateY(1px); }
 
         #gameWrapper { display: none; position: relative; width: 100vw; height: 100vh; }
         
-        /* تجميل الواجهة الداخلية لتتماشى مع الثيم الجديد */
         #scoreboard {
             position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
             background: rgba(6, 2, 15, 0.9); padding: 12px 35px; border-radius: 50px;
@@ -66,7 +63,6 @@
 
         .nametag { position: absolute; color: #fff; font-weight: 800; font-size: 11px; background: rgba(6, 2, 15, 0.9); padding: 4px 9px; border-radius: 6px; pointer-events: none; z-index: 3; text-align: center; transform: translate(-50%, -100%); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 4px 10px rgba(0,0,0,0.6); }
 
-        /* أزرار الهواتف المتطورة بنقوش بنفسجية وزرقاء */
         .touch-controls { position: absolute; bottom: 30px; left: 25px; right: 25px; display: flex; justify-content: space-between; pointer-events: none; width: calc(100% - 50px); z-index: 5; }
         .joystick-zone { width: 115px; height: 115px; background: rgba(155, 89, 182, 0.03); border: 2px dashed rgba(52, 152, 219, 0.4); border-radius: 50%; display: flex; justify-content: center; align-items: center; pointer-events: auto; backdrop-filter: blur(2px); }
         .joystick-stick { width: 48px; height: 48px; background: linear-gradient(135deg, #3498db, #9b59b6); border-radius: 50%; box-shadow: 0 0 15px rgba(52,152,219,0.6); }
@@ -127,34 +123,35 @@
         try {
             const container = document.getElementById('gameWrapper');
             scene = new THREE.Scene();
-            scene.background = new THREE.Color('#04010a'); 
-            scene.fog = new THREE.FogExp2('#04010a', 0.0018);
+            scene.background = new THREE.Color('#030107'); 
+            scene.fog = new THREE.FogExp2('#030107', 0.0025);
 
-            camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 3000);
-            camera.position.set(400, 530, 760);
+            // إعدادات كاميرا قريبة لتقليل المنظور وزيادة الحماس
+            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 2000);
+            camera.position.set(400, 320, 520);
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            renderer.toneMappingExposure = 1.2;
+            renderer.toneMappingExposure = 1.3;
             container.appendChild(renderer.domElement);
 
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
+            // تقليل الإضاءة العامة لإبراز أضواء العقبات
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.25);
             scene.add(ambientLight);
             
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
-            dirLight.position.set(300, 650, 450);
+            const dirLight = new THREE.DirectionalLight(0x3498db, 0.4);
+            dirLight.position.set(300, 500, 400);
             scene.add(dirLight);
 
-            // أرضية المعركة البنفسجية والزرقاء النيون المتوهجة
             const floorGeo = new THREE.PlaneGeometry(1200, 900);
-            const floorMat = new THREE.MeshStandardMaterial({ color: 0x090414, roughness: 0.6, metalness: 0.3 });
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0x05020c, roughness: 0.5, metalness: 0.4 });
             const floor = new THREE.Mesh(floorGeo, floorMat);
             floor.rotation.x = -Math.PI / 2;
             floor.position.set(400, 0, 300);
             scene.add(floor);
 
-            const gridHelper = new THREE.GridHelper(1500, 50, 0x9b59b6, 0x1b0833);
+            const gridHelper = new THREE.GridHelper(1500, 60, 0x9b59b6, 0x140824);
             gridHelper.position.set(400, 0.6, 300);
             scene.add(gridHelper);
 
@@ -170,79 +167,81 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
+    // مجسمات محسنة ومعدلة بالكامل للاعبين
     function createStickMan(teamColor) {
         const group = new THREE.Group();
         
         group.userData = {
             baseColor: teamColor,
-            normalMaterial: new THREE.MeshStandardMaterial({ color: teamColor, roughness: 0.25, metalness: 0.4 }),
+            normalMaterial: new THREE.MeshStandardMaterial({ color: teamColor, roughness: 0.2, metalness: 0.5 }),
             damageMaterial: new THREE.MeshBasicMaterial({ color: 0xffffff }),
-            armorMaterial: new THREE.MeshStandardMaterial({ color: 0x1c1724, roughness: 0.4, metalness: 0.8 }),
-            visorMaterial: new THREE.MeshBasicMaterial({ color: teamColor === 0x3498db ? 0x00ffff : 0xff2222 })
+            armorMaterial: new THREE.MeshStandardMaterial({ color: 0x1b1526, roughness: 0.3, metalness: 0.7 }),
+            visorMaterial: new THREE.MeshBasicMaterial({ color: teamColor === 0x3498db ? 0x00ffff : 0xff3366 })
         };
 
         const mat = group.userData.normalMaterial;
         const armorMat = group.userData.armorMaterial;
 
-        const headGeo = new THREE.BoxGeometry(10, 10, 10);
-        const head = new THREE.Mesh(headGeo, mat);
+        // خوذة مدرعة محسنة وأكبر نسبياً لتعطي مظهراً قتالياً أفضل
+        const headGeo = new THREE.CylinderGeometry(5.5, 5.5, 9, 16);
+        const head = new THREE.Mesh(headGeo, armorMat);
         head.position.y = 35;
         group.add(head);
 
-        const visorGeo = new THREE.BoxGeometry(10.6, 2.5, 3);
+        const visorGeo = new THREE.BoxGeometry(9.5, 2, 2.5);
         const visor = new THREE.Mesh(visorGeo, group.userData.visorMaterial);
-        visor.position.set(0, 36, 4.5);
+        visor.position.set(0, 36, 4.2);
         group.add(visor);
 
-        const jetpackGeo = new THREE.BoxGeometry(8, 12, 5);
-        const jetpack = new THREE.Mesh(jetpackGeo, armorMat);
-        jetpack.position.set(0, 24, -4.5);
+        // حقيبة نفاثة معدلة الأبعاد متناسقة على الظهر
+        const jetpackGeo = new THREE.BoxGeometry(9, 14, 4.5);
+        const jetpack = new THREE.Mesh(jetpackGeo, mat);
+        jetpack.position.set(0, 23, -4.5);
         group.add(jetpack);
 
-        const bodyGeo = new THREE.CylinderGeometry(2.5, 2.5, 16, 14);
+        // الجسد والدرع التكتيكي
+        const bodyGeo = new THREE.CylinderGeometry(3.5, 2.5, 17, 16);
         const body = new THREE.Mesh(bodyGeo, mat);
         body.position.y = 22;
         group.add(body);
 
-        const armorVestGeo = new THREE.CylinderGeometry(3.2, 3.2, 11, 14);
+        const armorVestGeo = new THREE.CylinderGeometry(4, 3.2, 12, 16);
         const armorVest = new THREE.Mesh(armorVestGeo, armorMat);
         armorVest.position.y = 24;
         group.add(armorVest);
 
-        const legGeo = new THREE.CylinderGeometry(1.4, 1.0, 14, 12);
+        // الأرجل
+        const legGeo = new THREE.CylinderGeometry(1.6, 1.2, 14, 12);
         
-        const leftLeg = new THREE.Mesh(legGeo, mat);
+        const leftLeg = new THREE.Mesh(legGeo, armorMat);
         leftLeg.geometry.translate(0, -7, 0); 
-        leftLeg.position.set(-3.5, 14, 0);
+        leftLeg.position.set(-3.2, 14, 0);
         group.add(leftLeg);
         group.userData.leftLeg = leftLeg;
 
-        const rightLeg = new THREE.Mesh(legGeo, mat);
+        const rightLeg = new THREE.Mesh(legGeo, armorMat);
         rightLeg.geometry.translate(0, -7, 0); 
-        rightLeg.position.set(3.5, 14, 0);
+        rightLeg.position.set(3.2, 14, 0);
         group.add(rightLeg);
         group.userData.rightLeg = rightLeg;
 
-        const armGeo = new THREE.CylinderGeometry(1.0, 0.9, 12, 12);
+        // الأيدي والسلاح
+        const armGeo = new THREE.CylinderGeometry(1.2, 1.0, 12, 12);
         const leftArm = new THREE.Mesh(armGeo, mat);
         leftArm.position.set(-6, 24, 2);
         leftArm.rotation.x = Math.PI / 3;
         group.add(leftArm);
 
         const gunGroup = new THREE.Group();
-        const barrel1 = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 22, 12), armorMat);
+        const barrel1 = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 24, 12), armorMat);
         barrel1.position.y = 0.8;
         barrel1.rotation.z = Math.PI / 2;
         gunGroup.add(barrel1);
 
-        const barrel2 = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 22, 12), armorMat);
+        const barrel2 = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 24, 12), armorMat);
         barrel2.position.y = -0.8;
         barrel2.rotation.z = Math.PI / 2;
         gunGroup.add(barrel2);
-
-        const scope = new THREE.Mesh(new THREE.BoxGeometry(5, 1.5, 1.5), armorMat);
-        scope.position.set(-2, 2.2, 0);
-        gunGroup.add(scope);
 
         gunGroup.position.set(11, 23, 5);
         group.add(gunGroup);
@@ -250,12 +249,10 @@
         return group;
     }
 
-    // تعديل الدخول الفوري وتخطي مشكلة السيرفر المعلق عند الضغط على الزر
     document.getElementById('startBtn').addEventListener('click', function() {
         const nameInput = document.getElementById('playerName');
         const name = nameInput.value.trim() || "مقاتل_" + Math.floor(Math.random()*100);
         
-        // الانتقال الفوري للواجهة بدون انتظار رد السيرفر لمنع التعليق
         document.getElementById('mainMenu').style.display = 'none';
         document.getElementById('gameWrapper').style.display = 'block';
         
@@ -277,20 +274,29 @@
             document.getElementById('redScore').innerText = state.score.red;
         }
 
+        // بناء حواجز دفاعية وتوليد أضواء حقيقية فوقها لتضيء الخريطة
         if (obstacleMeshes.length === 0 && state.obstacles) {
-            state.obstacles.forEach(obs => {
+            state.obstacles.forEach((obs, index) => {
                 const obsGroup = new THREE.Group();
+                
                 const geo = new THREE.BoxGeometry(obs.w, 38, obs.h);
-                const mat = new THREE.MeshStandardMaterial({ color: 0x170e2b, roughness: 0.4, metalness: 0.7 }); 
+                const mat = new THREE.MeshStandardMaterial({ color: 0x140d24, roughness: 0.4, metalness: 0.8 }); 
                 const box = new THREE.Mesh(geo, mat);
                 box.position.y = 19;
                 obsGroup.add(box);
 
+                // النيون العلوي المضيء للمجسم
                 const neonGeo = new THREE.BoxGeometry(obs.w + 1.5, 2.5, obs.h + 1.5);
-                const neonMat = new THREE.MeshBasicMaterial({ color: 0x3498db });
+                const lightColor = index % 2 === 0 ? 0x3498db : 0x9b59b6; // تبديل الإضاءة بين الأزرق والبنفسجي
+                const neonMat = new THREE.MeshBasicMaterial({ color: lightColor });
                 const neon = new THREE.Mesh(neonGeo, neonMat);
                 neon.position.y = 38;
                 obsGroup.add(neon);
+
+                // إضافة مصدر ضوء نقطي حقيقي فوق الحاجز لإضاءة المحيط واللاعبين
+                const pointLight = new THREE.PointLight(lightColor, 2.5, 220);
+                pointLight.position.set(0, 45, 0);
+                obsGroup.add(pointLight);
 
                 obsGroup.position.set(obs.x, 0, obs.y);
                 scene.add(obsGroup);
@@ -354,9 +360,10 @@
                 label.style.top = ((-(wp.y * .5) + .5) * window.innerHeight) + 'px';
             }
 
+            // الكاميرا تتبع اللاعب من منظور أقرب ومقرب بوضوح (Zoomed In View)
             if (id === socket.id && camera) {
-                camera.position.set(p.x, 530, p.y + 390);
-                camera.lookAt(p.x, 0, p.y);
+                camera.position.set(p.x, 320, p.y + 260);
+                camera.lookAt(p.x, 15, p.y);
             }
         }
 
@@ -373,7 +380,7 @@
         });
     });
 
-    // بقية أكواد التحكم والـ Joystick واللمس مستقرة وثابتة تماماً بدون تعديل لمنع أي خطأ..
+    // التحكم والـ Joystick واللمس للهواتف والكمبيوتر
     const joyZone = document.getElementById('joyZone');
     const joyStick = document.getElementById('joyStick');
     let joyActive = false;
