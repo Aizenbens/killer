@@ -13,32 +13,25 @@ app.get('/', (req, res) => {
 });
 
 let players = {};
-let bots = {};
 let bullets = [];
 let logs = [];
 let score = { blue: 0, red: 0 };
 let gameStatus = "active"; 
 
-const MAP = { width: 800, height: 600, color: '#111' };
+// إحداثيات وأبعاد العقبات الثابتة في الغابة (صناديق/أشجار افتراضية)
+const OBSTACLES = [
+    { x: 400, y: 300, w: 60, h: 60 }, // العقبة الوسطى
+    { x: 200, y: 150, w: 50, h: 50 },
+    { x: 200, y: 450, w: 50, h: 50 },
+    { x: 600, y: 150, w: 50, h: 50 },
+    { x: 600, y: 450, w: 50, h: 50 }
+];
+
+const MAP = { width: 800, height: 600, color: '#1b4d3e' }; // لون الغابة
 
 function addLog(text) {
     logs.push({ text, id: Date.now() });
     if (logs.length > 5) logs.shift();
-}
-
-// تخصيص توليد البوتات بناءً على طلبك
-function spawnBots(mode) {
-    bots = {};
-    if (mode === 'single') {
-        // الوضع الفردي: اللاعب وحده ضد 3 بوتات حمراء تهاجمه هو فقط
-        bots['bot_r1'] = { x: 700, y: 150, name: "آلي_أحمر_1", hp: 100, isBot: true, team: "red", lastShot: 0 };
-        bots['bot_r2'] = { x: 700, y: 300, name: "آلي_أحمر_2", hp: 100, isBot: true, team: "red", lastShot: 0 };
-        bots['bot_r3'] = { x: 700, y: 450, name: "آلي_أحمر_3", hp: 100, isBot: true, team: "red", lastShot: 0 };
-    } else {
-        // الوضع الجماعي: بوت محترف لكل فريق لدعم اللاعبين
-        bots['bot_m1'] = { x: 150, y: 150, name: "محترف_أزرق", hp: 100, isBot: true, team: "blue", lastShot: 0 };
-        bots['bot_m2'] = { x: 650, y: 450, name: "محترف_أحمر", hp: 100, isBot: true, team: "red", lastShot: 0 };
-    }
 }
 
 function checkRoundEnd() {
@@ -53,14 +46,10 @@ function checkRoundEnd() {
             if (players[id].team === "red") redAlive = true;
         }
     }
-    for (let id in bots) {
-        if (bots[id].hp > 0) {
-            if (bots[id].team === "blue") blueAlive = true;
-            if (bots[id].team === "red") redAlive = true;
-        }
-    }
 
-    if (!blueAlive || !redAlive) {
+    // تنتهي الجولة فقط إذا كان هناك لاعبون متصلون ومات أحدهم
+    let totalPlayers = Object.keys(players).length;
+    if (totalPlayers > 1 && (!blueAlive || !redAlive)) {
         let roundWinner = !blueAlive ? "الحمر" : "الزرق";
         let teamKey = !blueAlive ? "red" : "blue";
         
@@ -73,28 +62,36 @@ function checkRoundEnd() {
             setTimeout(resetEntireGame, 5000);
         } else {
             gameStatus = "intermission";
-            let currentMode = Object.values(players)[0]?.gameMode || 'multi';
-            setTimeout(() => resetRound(currentMode), 3000);
+            setTimeout(resetRound, 3000);
         }
     }
 }
 
-function resetRound(mode) {
+function resetRound() {
     for (let id in players) {
         players[id].hp = 100;
         players[id].x = players[id].team === "blue" ? 150 : 650;
         players[id].y = 200 + Math.random() * 200;
     }
-    spawnBots(mode);
     bullets = [];
     gameStatus = "active";
-    addLog("⚔️ بدأت جولة جديدة! انطلقوا!");
+    addLog("⚔️ بدأت جولة جديدة في الغابة!");
 }
 
 function resetEntireGame() {
     score = { blue: 0, red: 0 };
-    let currentMode = Object.values(players)[0]?.gameMode || 'multi';
-    resetRound(currentMode);
+    resetRound();
+}
+
+// دالة فحص تصادم الكائنات (اللاعب أو الرصاص) مع العقبات
+function checkObstacleCollision(x, y, radius) {
+    for (let obs of OBSTACLES) {
+        if (x + radius > obs.x - obs.w/2 && x - radius < obs.x + obs.w/2 &&
+            y + radius > obs.y - obs.h/2 && y - radius < obs.y + obs.h/2) {
+            return true;
+        }
+    }
+    return false;
 }
 
 io.on('connection', (socket) => {
@@ -108,23 +105,14 @@ io.on('connection', (socket) => {
         name: "جندي",
         hp: 100,
         team: assignedTeam,
-        gameMode: 'multi',
+        angle: 0,
         movement: {}
     };
 
     socket.on('initGame', (data) => {
         if(players[socket.id]) {
             players[socket.id].name = data.name;
-            players[socket.id].gameMode = data.mode;
-            
-            if(data.mode === 'single') {
-                players[socket.id].team = "blue"; // في اللعب الفردي اللاعب دائماً أزرق وحده
-                players[socket.id].x = 150;
-                players[socket.id].y = 300;
-            }
-            
             addLog(`📢 انضم ${data.name} للفريق ${players[socket.id].team === 'blue' ? 'الأزرق' : 'الأحمر'}`);
-            spawnBots(data.mode);
             socket.emit('teamAssignment', players[socket.id].team);
         }
     });
@@ -137,10 +125,13 @@ io.on('connection', (socket) => {
         let p = players[socket.id];
         if (p && p.hp > 0 && gameStatus === "active") {
             let angle = Math.atan2(target.targetY - p.y, target.targetX - p.x);
+            p.angle = angle; // تحديث زاوية اتجاه الشخصية والسلاح ليوجه نحو الماوس
+            
             bullets.push({
-                x: p.x, y: p.y,
-                vx: Math.cos(angle) * 11,
-                vy: Math.sin(angle) * 11,
+                x: p.x + Math.cos(angle) * 25, 
+                y: p.y + Math.sin(angle) * 25,
+                vx: Math.cos(angle) * 12,
+                vy: Math.sin(angle) * 12,
                 ownerId: socket.id,
                 team: p.team
             });
@@ -150,9 +141,7 @@ io.on('connection', (socket) => {
 
     socket.on('chatMessage', (msg) => {
         let p = players[socket.id];
-        if(p) {
-            io.emit('chatUpdate', { name: p.name, text: msg, team: p.team });
-        }
+        if(p) io.emit('chatUpdate', { name: p.name, text: msg, team: p.team });
     });
 
     socket.on('disconnect', () => {
@@ -164,86 +153,49 @@ io.on('connection', (socket) => {
     });
 });
 
-// حلقة اللعبة (60 إطار في الثانية) مع ذكاء اصطناعي محترف لملاحقة اللاعب
+// حلقة اللعبة الرئيسية (60 إطار بالثانية)
 setInterval(() => {
-    let activePlayers = {};
-
     for (let id in players) {
         let p = players[id];
         if (p.hp > 0 && gameStatus === "active") {
+            let oldX = p.x;
+            let oldY = p.y;
+            
+            // حساب حركات اللاعب مع فحص حدود الخريطة
             if (p.movement.up && p.y > 20) p.y -= 4;
             if (p.movement.down && p.y < 580) p.y += 4;
             if (p.movement.left && p.x > 20) p.x -= 4;
             if (p.movement.right && p.x < 780) p.x += 4;
-        }
-        activePlayers[id] = p;
-    }
 
-    // حركة البوتات المحترفة لملاحقة وحصار الخصوم حركياً وبصرياً
-    for (let id in bots) {
-        let b = bots[id];
-        if (b.hp <= 0) continue;
+            // تحديث زاوية الدوران بناءً على اتجاه الحركة الافتراضي إذا لم يطلق النار
+            if (p.movement.left) p.angle = Math.PI;
+            else if (p.movement.right) p.angle = 0;
+            else if (p.movement.up) p.angle = -Math.PI / 2;
+            else if (p.movement.down) p.angle = Math.PI / 2;
 
-        if (gameStatus === "active") {
-            let closestEnemy = null;
-            let minDist = Infinity;
-
-            for (let targetId in players) {
-                let target = players[targetId];
-                if (target.hp > 0 && target.team !== b.team) {
-                    let dist = Math.hypot(target.x - b.x, target.y - b.y);
-                    if (dist < minDist) { minDist = dist; closestEnemy = target; }
-                }
-            }
-            for (let targetId in bots) {
-                let target = bots[targetId];
-                if (target.hp > 0 && target.team !== b.team) {
-                    let dist = Math.hypot(target.x - b.x, target.y - b.y);
-                    if (dist < minDist) { minDist = dist; closestEnemy = target; }
-                }
-            }
-
-            if (closestEnemy) {
-                let angle = Math.atan2(closestEnemy.y - b.y, closestEnemy.x - b.x);
-                let speed = 2.5; 
-                
-                if (minDist > 180) {
-                    b.x += Math.cos(angle) * speed;
-                    b.y += Math.sin(angle) * speed;
-                } else {
-                    b.x += Math.cos(angle + Math.PI/2) * (speed * 0.8);
-                    b.y += Math.sin(angle + Math.PI/2) * (speed * 0.8);
-                }
-
-                b.x = Math.max(25, Math.min(775, b.x));
-                b.y = Math.max(25, Math.min(575, b.y));
-
-                let now = Date.now();
-                if (now - b.lastShot > 1100) {
-                    bullets.push({
-                        x: b.x, y: b.y,
-                        vx: Math.cos(angle) * 9,
-                        vy: Math.sin(angle) * 9,
-                        ownerId: id,
-                        team: b.team
-                    });
-                    io.emit('playShootSound');
-                    b.lastShot = now;
-                }
+            // الارتداد ومنع المشي فوق العقبات المتواجدة في الغابة
+            if (checkObstacleCollision(p.x, p.y, 15)) {
+                p.x = oldX;
+                p.y = oldY;
             }
         }
-        activePlayers[id] = b;
     }
 
+    // حركة وتصادم الرصاص
     for (let i = bullets.length - 1; i >= 0; i--) {
         let b = bullets[i];
         b.x += b.vx;
         b.y += b.vy;
 
-        let bulletRemoved = false;
+        // الرصاص يختفي إذا اصطدم بعقبة حماية في الغابة
+        if (checkObstacleCollision(b.x, b.y, 5)) {
+            bullets.splice(i, 1);
+            continue;
+        }
 
-        for (let id in activePlayers) {
-            let p = activePlayers[id];
+        let bulletRemoved = false;
+        for (let id in players) {
+            let p = players[id];
             if (p.hp > 0 && p.team !== b.team) {
                 let dist = Math.hypot(b.x - p.x, b.y - p.y);
                 if (dist < 20) {
@@ -252,12 +204,9 @@ setInterval(() => {
                     bulletRemoved = true;
 
                     if (p.hp <= 0) {
-                        let killer = activePlayers[b.ownerId] ? activePlayers[b.ownerId].name : "مجهول";
+                        let killer = players[b.ownerId] ? players[b.ownerId].name : "مجهول";
                         addLog(`💀 ${killer} قَضى على ${p.name}`);
-                        
-                        if (!p.isBot) {
-                            io.to(id).emit('playerDied');
-                        }
+                        io.to(id).emit('playerDied');
                         checkRoundEnd(); 
                     }
                     break;
@@ -269,7 +218,8 @@ setInterval(() => {
         if (b.x < 0 || b.x > 800 || b.y < 0 || b.y > 600) bullets.splice(i, 1);
     }
 
-    io.emit('state', { players: activePlayers, bullets, logs, mapConfig: MAP, score });
+    io.emit('state', { players, bullets, logs, obstacles: OBSTACLES, score });
 }, 1000 / 60);
 
-server.listen(3000, () => console.log('السيرفر جاهز على http://localhost:3000'));
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log(`السيرفر يعمل بنجاح على البورت ${PORT}`));
