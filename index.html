@@ -28,33 +28,34 @@
         #scoreboard {
             position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
             background: rgba(0,0,0,0.8); padding: 10px 25px; border-radius: 30px;
-            color: #fff; font-weight: bold; font-size: 18px; display: flex; gap: 20px;
+            color: #fff; font-weight: bold; font-size: 14px; display: flex; gap: 15px;
             border: 2px solid #fff; pointer-events: none; z-index: 4;
         }
         
         #healthUI {
-            position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.75);
-            padding: 12px 20px; border-radius: 10px; border: 1px solid #fff;
-            color: #fff; font-weight: bold; font-size: 16px; z-index: 4; width: 200px;
+            position: absolute; top: 15px; left: 15px; background: rgba(0,0,0,0.75);
+            padding: 8px 15px; border-radius: 10px; border: 1px solid #fff;
+            color: #fff; font-weight: bold; font-size: 13px; z-index: 4; width: 140px;
         }
-        .hp-bar-container { width: 100%; background: #444; height: 15px; border-radius: 5px; margin-top: 5px; overflow: hidden; }
+        .hp-bar-container { width: 100%; background: #444; height: 10px; border-radius: 5px; margin-top: 5px; overflow: hidden; }
         #hpBarFill { width: 100%; background: #2ecc71; height: 100%; transition: width 0.2s; }
 
-        #logBox { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: #fff; padding: 10px; border-radius: 5px; font-size: 13px; max-width: 220px; pointer-events: none; direction: rtl; z-index: 4; }
+        #logBox { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: #fff; padding: 8px; border-radius: 5px; font-size: 11px; max-width: 180px; pointer-events: none; direction: rtl; z-index: 4; }
         
         #chatContainer {
-            position: absolute; bottom: 15px; left: 15px; width: 260px;
-            background: rgba(0,0,0,0.6); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; z-index: 4;
+            position: absolute; bottom: 120px; left: 15px; width: 220px;
+            background: rgba(0,0,0,0.5); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; z-index: 4;
         }
-        #chatArea { height: 120px; overflow-y: auto; color: #fff; font-size: 13px; margin-bottom: 5px; text-align: right; direction: rtl; }
-        #chatInput { padding: 6px; margin: 0; font-size: 13px; width: 100%; background: rgba(255,255,255,0.2); color: #fff; border: 1px solid #777; }
+        #chatArea { height: 80px; overflow-y: auto; color: #fff; font-size: 11px; margin-bottom: 5px; text-align: right; direction: rtl; }
+        #chatInput { padding: 5px; margin: 0; font-size: 11px; width: 100%; background: rgba(255,255,255,0.2); color: #fff; border: 1px solid #777; }
 
-        .nametag { position: absolute; color: #fff; font-weight: bold; font-size: 12px; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 4px; pointer-events: none; z-index: 3; text-align: center; transform: translate(-50%, -100%); }
+        .nametag { position: absolute; color: #fff; font-weight: bold; font-size: 11px; background: rgba(0,0,0,0.6); padding: 2px 5px; border-radius: 4px; pointer-events: none; z-index: 3; text-align: center; transform: translate(-50%, -100%); }
 
-        .touch-controls { position: absolute; bottom: 30px; left: 30px; right: 30px; display: flex; justify-content: space-between; pointer-events: none; width: calc(100% - 60px); z-index: 5; }
-        .joystick, .fire-btn { width: 90px; height: 90px; background: rgba(255, 255, 255, 0.25); border: 3px solid #fff; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; user-select: none; pointer-events: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        .fire-btn { background: rgba(255, 0, 0, 0.5); border-color: #ff5555; }
-        @media (min-width: 768px) { .touch-controls { display: none; } }
+        /* أزرار التحكم اللمسية للهواتف */
+        .touch-controls { position: absolute; bottom: 25px; left: 20px; right: 20px; display: flex; justify-content: space-between; pointer-events: none; width: calc(100% - 40px); z-index: 5; }
+        .joystick-zone { width: 120px; height: 120px; background: rgba(255, 255, 255, 0.1); border: 2px dashed rgba(255,255,255,0.3); border-radius: 50%; display: flex; justify-content: center; align-items: center; pointer-events: auto; }
+        .joystick-stick { width: 50px; height: 50px; background: rgba(255, 255, 255, 0.5); border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        .fire-btn { width: 90px; height: 90px; background: rgba(255, 0, 0, 0.6); border: 3px solid #ff5555; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; font-size: 18px; user-select: none; pointer-events: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.5); align-self: center; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
@@ -91,8 +92,10 @@
 </div>
 
 <div class="touch-controls" id="touchUI" style="display: none;">
-    <div class="joystick" id="movePad">حرك</div>
-    <div class="fire-btn" id="fireBtn">إطلاق</div>
+    <div class="joystick-zone" id="joyZone">
+        <div class="joystick-stick" id="joyStick"></div>
+    </div>
+    <div class="fire-btn" id="fireBtn">FIRE</div>
 </div>
 
 <script>
@@ -103,6 +106,7 @@
     let obstacleMeshes = [];
     let myTeam = "blue";
     const movement = { up: false, down: false, left: false, right: false };
+    let myPlayerPos = { x: 400, y: 300 };
 
     function init3D() {
         try {
@@ -198,7 +202,11 @@
         
         document.getElementById('mainMenu').style.display = 'none';
         document.getElementById('gameWrapper').style.display = 'block';
-        if(window.innerWidth < 768) document.getElementById('touchUI').style.display = 'flex';
+        
+        // التحقق التلقائي إذا كان الجهاز هاتفاً لتشغيل أزرار اللمس
+        if(window.innerWidth < 1024 || 'ontouchstart' in window) {
+            document.getElementById('touchUI').style.display = 'flex';
+        }
 
         init3D();
         socket.emit('initGame', { name: name });
@@ -241,6 +249,8 @@
             if (p.hp <= 0) continue;
 
             if (id === socket.id) {
+                myPlayerPos.x = p.x;
+                myPlayerPos.y = p.y;
                 const fill = document.getElementById('hpBarFill');
                 if(fill) {
                     fill.style.width = p.hp + '%';
@@ -335,29 +345,60 @@
         }
     });
 
-    const chatInput = document.getElementById('chatInput');
-    const chatArea = document.getElementById('chatArea');
+    // برمجة الـ Joystick للهواتف الذكية
+    const joyZone = document.getElementById('joyZone');
+    const joyStick = document.getElementById('joyStick');
+    let joyActive = false;
 
-    if(chatInput) {
-        chatInput.addEventListener('keydown', (e) => {
-            if(e.key === 'Enter' && chatInput.value.trim() !== "") {
-                socket.emit('chatMessage', chatInput.value.trim());
-                chatInput.value = '';
-            }
-        });
+    joyZone.addEventListener('touchstart', handleJoyStart, false);
+    window.addEventListener('touchmove', handleJoyMove, { passive: false });
+    window.addEventListener('touchend', handleJoyEnd, false);
+
+    function handleJoyStart(e) { joyActive = true; }
+
+    function handleJoyMove(e) {
+        if (!joyActive) return;
+        e.preventDefault();
+        
+        let touch = e.touches[0];
+        let rect = joyZone.getBoundingClientRect();
+        let centerX = rect.left + rect.width / 2;
+        let centerY = rect.top + rect.height / 2;
+        
+        let deltaX = touch.clientX - centerX;
+        let deltaY = touch.clientY - centerY;
+        let distance = Math.min(Math.sqrt(deltaX*deltaX + deltaY*deltaY), 40);
+        let angle = Math.atan2(deltaY, deltaX);
+
+        joyStick.style.transform = `translate(${Math.cos(angle)*distance}px, ${Math.sin(angle)*distance}px)`;
+
+        // تحويل الحركة إلى اتجاهات مفهومة للسيرفر
+        movement.up = deltaY < -15;
+        movement.down = deltaY > 15;
+        movement.left = deltaX < -15;
+        movement.right = deltaX > 15;
+        socket.emit('movement', movement);
     }
 
-    socket.on('chatUpdate', (data) => {
-        if(!chatArea) return;
-        const div = document.createElement('div');
-        let tColor = data.team === "blue" ? "#3498db" : "#e74c3c";
-        div.innerHTML = `<strong style="color: ${tColor}">${data.name}:</strong> ${data.text}`;
-        chatArea.appendChild(div);
-        chatArea.scrollTop = chatArea.scrollHeight;
+    function handleJoyEnd(e) {
+        joyActive = false;
+        joyStick.style.transform = 'translate(0px, 0px)';
+        movement.up = false; movement.down = false; movement.left = false; movement.right = false;
+        socket.emit('movement', movement);
+    }
+
+    // زر إطلاق النار للهواتف وتحديد زاوية الإطلاق التلقائية أمام اللاعب
+    document.getElementById('fireBtn').addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        // إطلاق النار مباشرة للأمام بناءً على اتجاه اللاعب الحالي
+        let angle = playerGroups[socket.id] ? playerGroups[socket.id].rotation.y : 0;
+        let targetX = myPlayerPos.x + Math.sin(angle) * 100;
+        let targetY = myPlayerPos.y - Math.cos(angle) * 100;
+        socket.emit('shoot', { targetX: targetX, targetY: targetY });
     });
 
+    // التحكم بالكمبيوتر (لوحة المفاتيح والماوس) كبديل متناسق
     document.addEventListener('keydown', (e) => {
-        if(document.activeElement === chatInput) return;
         if (['w', 'ArrowUp', 'KeyW'].includes(e.code) || ['w', 'ArrowUp'].includes(e.key)) movement.up = true;
         if (['s', 'ArrowDown', 'KeyS'].includes(e.code) || ['s', 'ArrowDown'].includes(e.key)) movement.down = true;
         if (['a', 'ArrowLeft', 'KeyA'].includes(e.code) || ['a', 'ArrowLeft'].includes(e.key)) movement.left = true;
