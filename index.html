@@ -18,21 +18,29 @@
             box-shadow: 0 0 25px rgba(255,255,255,0.1); width: 320px; text-align: center; border: 1px solid rgba(255,255,255,0.2);
         }
         h1 { margin-top: 0; font-size: 28px; letter-spacing: 2px; color: #f3f3f3; }
-        input, select, button { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box; }
-        input, select { background: rgba(255,255,255,0.9); color: #222; font-weight: bold; }
-        button { background: #fff; color: #000; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        button:hover { background: #ccc; transform: scale(1.02); }
+        input, button { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box; }
+        input { background: rgba(255,255,255,0.9); color: #222; font-weight: bold; }
+        button { background: #1b4d3e; color: #fff; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        button:hover { background: #277459; transform: scale(1.02); }
 
         #gameWrapper { display: none; position: relative; width: 100vw; height: 100vh; }
         
+        /* عداد جولات علوي */
         #scoreboard {
             position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
             background: rgba(0,0,0,0.8); padding: 10px 25px; border-radius: 30px;
             color: #fff; font-weight: bold; font-size: 18px; display: flex; gap: 20px;
-            border: 2px solid #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.5); pointer-events: none; z-index: 4;
+            border: 2px solid #fff; pointer-events: none; z-index: 4;
         }
-        .blue-team-score { color: #3498db; }
-        .red-team-score { color: #e74c3c; }
+        
+        /* شريط صحة اللاعب الاحترافي المضاف في طرف الشاشة العلوي الأيسر */
+        #healthUI {
+            position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.75);
+            padding: 12px 20px; border-radius: 10px; border: 1px solid #fff;
+            color: #fff; font-weight: bold; font-size: 16px; z-index: 4; width: 200px;
+        }
+        .hp-bar-container { width: 100%; background: #444; height: 15px; border-radius: 5px; margin-top: 5px; overflow: hidden; }
+        #hpBarFill { width: 100%; background: #2ecc71; height: 100%; transition: width 0.2s; }
 
         #logBox { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: #fff; padding: 10px; border-radius: 5px; font-size: 13px; max-width: 220px; pointer-events: none; direction: rtl; z-index: 4; }
         
@@ -43,10 +51,8 @@
         #chatArea { height: 120px; overflow-y: auto; color: #fff; font-size: 13px; margin-bottom: 5px; text-align: right; direction: rtl; }
         #chatInput { padding: 6px; margin: 0; font-size: 13px; width: 100%; background: rgba(255,255,255,0.2); color: #fff; border: 1px solid #777; }
 
-        .touch-controls { position: absolute; bottom: 20px; left: 20px; right: 20px; display: flex; justify-content: space-between; pointer-events: none; width: calc(100% - 40px); z-index: 5; }
-        .joystick, .fire-btn { width: 80px; height: 80px; background: rgba(255, 255, 255, 0.2); border: 3px solid #fff; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; user-select: none; pointer-events: auto; }
-        .fire-btn { background: rgba(255, 0, 0, 0.4); border-color: #ff4444; }
-        @media (min-width: 768px) { .touch-controls { display: none; } }
+        /* الأسماء العائمة فوق الشخصية ثلاثية الأبعاد */
+        .nametag { position: absolute; color: #fff; font-weight: bold; font-size: 12px; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 4px; pointer-events: none; z-index: 3; text-align: center; transform: translate(-50%, -100%); }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
@@ -58,68 +64,61 @@
 
 <div id="mainMenu">
     <div class="menu-card">
-        <h1>المواجهة الكبرى 3D</h1>
-        <input type="text" id="playerName" placeholder="أدخل اسم البطل..." maxlength="12">
-        <select id="gameMode">
-            <option value="single">لعب فردي (ضد 3 بوتات)</option>
-            <option value="multi">لعب جماعي (أونلاين)</option>
-        </select>
-        <button onclick="startGame()">ابدأ المعركة 🔥</button>
+        <h1>مواجهة الغابة 3D</h1>
+        <input type="text" id="playerName" placeholder="أدخل اسم المقاتل..." maxlength="12">
+        <button onclick="startGame()">انطلق للغابة 🔥</button>
     </div>
 </div>
 
 <div id="gameWrapper">
-    <div id="scoreboard">
-        <span class="blue-team-score">الفريق الأزرق: <span id="blueScore">0</span></span>
-        <span>🆚</span>
-        <span class="red-team-score"><span id="redScore">0</span> :الفريق الأحمر</span>
+    <div id="healthUI">
+        <div>صحة المقاتل (HP)</div>
+        <div class="hp-bar-container"><div id="hpBarFill"></div></div>
     </div>
-    <div id="logBox"></div>
-    <div id="chatContainer">
-        <div id="chatArea"></div>
-        <input type="text" id="chatInput" placeholder="اكتب رسالة واضغط Enter..." maxlength="40">
-    </div>
-</div>
 
-<div class="touch-controls" id="touchUI" style="display: none;">
-    <div class="joystick" id="movePad">حرك</div>
-    <div class="fire-btn" id="fireBtn">إطلاق</div>
+    <div id="scoreboard">
+        <span style="color: #3498db;">الزنادقة  االزرق: <span id="blueScore">0</span></span>
+        <span>🆚</span>
+        <span style="color: #e74c3c;"><span id="redScore">0</span> :الزنادقة الحمر</span>
+    </div>
+    
+    <div id="logBox"></div>
+    <div id="labelsContainer"></div> <div id="chatContainer">
+        <div id="chatArea"></div>
+        <input type="text" id="chatInput" placeholder="اكتب للجروب..." maxlength="40">
+    </div>
 </div>
 
 <script>
     const socket = io();
     let scene, camera, renderer;
-    let playerMeshes = {};
+    let playerGroups = {}; 
     let bulletMeshes = [];
-    let myId = null;
+    let obstacleMeshes = [];
     let myTeam = "blue";
     const movement = { up: false, down: false, left: false, right: false };
 
-    // إعداد بيئة 3D الأساسية عند فتح اللعبة
     function init3D() {
         const container = document.getElementById('gameWrapper');
         scene = new THREE.Scene();
-        scene.background = new THREE.Color('#050505');
+        scene.background = new THREE.Color('#0a1f16'); // خلفية سماء غامقة تناسب الغابة
 
         camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
-        // ضبط زاوية الكاميرا العلوية المائلة لتعطي رؤية استراتيجية ممتازة للاعب
-        camera.position.set(400, 500, 750);
-        camera.lookAt(400, 0, 300);
+        camera.position.set(400, 480, 700);
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         container.appendChild(renderer.domElement);
 
-        // إضافة إضاءة المحيط والضوء الساطع للمجسمات ثلاثية الأبعاد
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
         scene.add(ambientLight);
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        dirLight.position.set(400, 600, 400);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+        dirLight.position.set(400, 500, 300);
         scene.add(dirLight);
 
-        // إنشاء أرضية المعركة ثلاثية الأبعاد
+        // إنشاء أرضية الغابة (Plane بلون عشبي أخضر داكن)
         const floorGeo = new THREE.PlaneGeometry(800, 600);
-        const floorMat = new THREE.MeshStandardMaterial({ color: 0x161616, roughness: 0.8 });
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0x1b4d3e, roughness: 0.9 });
         const floor = new THREE.Mesh(floorGeo, floorMat);
         floor.rotation.x = -Math.PI / 2;
         floor.position.set(400, 0, 300);
@@ -134,46 +133,93 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
-    function startGame() {
-        const name = document.getElementById('playerName').value.trim() || "بطل_" + Math.floor(Math.random()*100);
-        const mode = document.getElementById('gameMode').value;
+    // بناء شكل الـ Stick Man المطور والحامل للسلاح كـ Group ثلاثي الأبعاد برمجياً
+    function createStickMan(teamColor) {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshStandardMaterial({ color: teamColor, roughness: 0.4 });
 
+        // 1. الرأس (دائرة)
+        const headGeo = new THREE.SphereGeometry(6, 16, 16);
+        const head = new THREE.Mesh(headGeo, mat);
+        head.position.y = 32;
+        group.add(head);
+
+        // 2. العمود الفقري/الجسم (اسطوانة طاقة)
+        const bodyGeo = new THREE.CylinderGeometry(1.5, 1.5, 16, 8);
+        const body = new THREE.Mesh(bodyGeo, mat);
+        body.position.y = 20;
+        group.add(body);
+
+        // 3. الأطراف والساقين (مخطط هيكيلي بسيط)
+        const legGeo = new THREE.CylinderGeometry(1, 1, 12, 8);
+        const leftLeg = new THREE.Mesh(legGeo, mat);
+        leftLeg.position.set(-3, 6, 0);
+        leftLeg.rotation.z = 0.2;
+        group.add(leftLeg);
+
+        const rightLeg = new THREE.Mesh(legGeo, mat);
+        rightLeg.position.set(3, 6, 0);
+        rightLeg.rotation.z = -0.2;
+        group.add(rightLeg);
+
+        // 4. السلاح الناري البارز (الـ Gun الموجه للأمام باتجاه الـ X)
+        const gunGeo = new THREE.CylinderGeometry(1.2, 1.2, 16, 8);
+        const gunMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.8 });
+        const gun = new THREE.Mesh(gunGeo, gunMat);
+        gun.position.set(10, 22, 0); // بارز ومثبت في منتصف الجسم كأنه محمول
+        gun.rotation.z = Math.PI / 2; // ممدود للأمام للتصويب والضرب
+        group.add(gun);
+
+        return group;
+    }
+
+    function startGame() {
+        const name = document.getElementById('playerName').value.trim() || "مقاتل_" + Math.floor(Math.random()*100);
         document.getElementById('mainMenu').style.display = 'none';
         document.getElementById('gameWrapper').style.display = 'block';
-        if(window.innerWidth < 768) document.getElementById('touchUI').style.display = 'flex';
 
         init3D();
 
-        const starMusic = document.getElementById('starMusic');
-        starMusic.volume = 0.25;
-        starMusic.play().catch(e => console.log(e));
+        document.getElementById('starMusic').volume = 0.25;
+        document.getElementById('starMusic').play().catch(e => console.log(e));
 
-        socket.emit('initGame', { name, mode, team: myTeam });
+        socket.emit('initGame', { name });
     }
 
-    socket.on('connect', () => { myId = socket.id; });
     socket.on('teamAssignment', (team) => { myTeam = team; });
+    socket.on('playerDied', () => { document.getElementById('deathSound').play(); });
 
-    socket.on('playerDied', () => {
-        const deathSound = document.getElementById('deathSound');
-        deathSound.volume = 0.6;
-        deathSound.play();
-    });
-
-    // تحديث كافة الكائنات والمجسمات القادمة من السيرفر في كل إطار 3D
+    // تحديث الإطارات والعقبات والأسماء وشريط الدم في طرف الشاشة
     socket.on('state', (state) => {
         if (!scene) return;
 
+        // 1. تحديث نتيجة الجولات
         if(state.score) {
             document.getElementById('blueScore').innerText = state.score.blue;
             document.getElementById('redScore').innerText = state.score.red;
         }
 
-        // تحديث وإدارة مجسمات اللاعبين والبوتات
-        for (let id in playerMeshes) {
+        // 2. تحديث وتوليد العقبات (Obstacles) ثلاثية الأبعاد في الغابة لمرة واحدة عند استلامها
+        if (obstacleMeshes.length === 0 && state.obstacles) {
+            state.obstacles.forEach(obs => {
+                const geo = new THREE.BoxGeometry(obs.w, 40, obs.h); // ارتفاع العقبة 40 ليحمي الـ Stick man
+                const mat = new THREE.MeshStandardMaterial({ color: 0x5a3d28, roughness: 0.9 }); // لون خشبي/صخري للعقبات
+                const box = new THREE.Mesh(geo, mat);
+                box.position.set(obs.x, 20, obs.y);
+                scene.add(box);
+                obstacleMeshes.push(box);
+            });
+        }
+
+        // 3. مسح وإعادة رسم وتحديث مجسمات الـ Stick Man
+        const labelsContainer = document.getElementById('labelsContainer');
+        
+        for (let id in playerGroups) {
             if (!state.players[id] || state.players[id].hp <= 0) {
-                scene.remove(playerMeshes[id]);
-                delete playerMeshes[id];
+                scene.remove(playerGroups[id]);
+                delete playerGroups[id];
+                const existingLabel = document.getElementById('label_' + id);
+                if (existingLabel) existingLabel.remove();
             }
         }
 
@@ -181,40 +227,63 @@
             let p = state.players[id];
             if (p.hp <= 0) continue;
 
-            if (!playerMeshes[id]) {
-                // إنشاء مجسم كروي ثلاثي الأبعاد لكل مقاتل
-                const geometry = new THREE.SphereGeometry(15, 32, 32);
-                const color = p.team === "blue" ? 0x3498db : 0xe74c3c;
-                const material = new THREE.MeshStandardMaterial({ color: color, roughness: 0.3, metalness: 0.2 });
-                const mesh = new THREE.Mesh(geometry, material);
-                scene.add(mesh);
-                playerMeshes[id] = mesh;
-            }
-            // ربط الإحداثيات الثنائية بمحاور الـ 3D (X و Z يمثلان الأرض، و Y الارتفاع)
-            playerMeshes[id].position.set(p.x, 15, p.y);
-            
-            // جعل الكاميرا تتبع مكان لاعبك الحقيقي بسلاسة من الأعلى
+            // تحديث شريط الدم الثابت بطرف الشاشة المخصص للاعب نفسه فقط
             if (id === socket.id) {
-                camera.position.set(p.x, 450, p.y + 400);
+                const fill = document.getElementById('hpBarFill');
+                fill.style.width = p.hp + '%';
+                if (p.hp < 40) fill.style.background = '#e74c3c';
+                else fill.style.background = '#2ecc71';
+            }
+
+            if (!playerGroups[id]) {
+                const tColor = p.team === "blue" ? 0x3498db : 0xe74c3c;
+                playerGroups[id] = createStickMan(tColor);
+                scene.add(playerGroups[id]);
+
+                // توليد الاسم العائم فوق الرأس برمجياً في الـ HTML UI
+                const label = document.createElement('div');
+                label.id = 'label_' + id;
+                label.className = 'nametag';
+                label.innerText = p.name;
+                labelsContainer.appendChild(label);
+            }
+
+            // تعيين المكان والزاوية الحركية للـ Stick Man والسلاح المرفق به
+            playerGroups[id].position.set(p.x, 0, p.y);
+            playerGroups[id].rotation.y = -p.angle; // تدوير كامل الهيكل باتجاه التصويب والإطلاق
+
+            // ربط وعرض الاسم العائم ليتتبع رأس الـ Stick Man ثري دي على الشاشة
+            const label = document.getElementById('label_' + id);
+            if (label) {
+                const wp = new THREE.Vector3(p.x, 42, p.y);
+                wp.project(camera);
+                const screenX = (wp.x * .5 + .5) * window.innerWidth;
+                const screenY = (-(wp.y * .5) + .5) * window.innerHeight;
+                label.style.left = screenX + 'px';
+                label.style.top = screenY + 'px';
+            }
+
+            if (id === socket.id) {
+                camera.position.set(p.x, 450, p.y + 380);
                 camera.lookAt(p.x, 0, p.y);
             }
         }
 
-        // تحديث وإدارة مجسمات الرصاص المتوهج
+        // 4. رندرة وتحديث مسارات الطلقات المتوهجة
         bulletMeshes.forEach(mesh => scene.remove(mesh));
         bulletMeshes = [];
 
         state.bullets.forEach(b => {
-            const geometry = new THREE.SphereGeometry(5, 16, 16);
-            const color = b.team === "blue" ? 0x85c1e9 : 0xf1948a;
+            const geometry = new THREE.SphereGeometry(4, 16, 16);
+            const color = b.team === "blue" ? 0x00ffff : 0xff4500;
             const material = new THREE.MeshBasicMaterial({ color: color });
             const mesh = new THREE.Mesh(geometry, material);
-            mesh.position.set(b.x, 15, b.y);
+            mesh.position.set(b.x, 22, b.y); // ارتفاع المقذوف يطابق مستوى السلاح المحمول
             scene.add(mesh);
             bulletMeshes.push(mesh);
         });
 
-        // تحديث لوحة السجلات والرسائل
+        // 5. سجل اللوجات والدردشة
         const logBox = document.getElementById('logBox');
         logBox.innerHTML = '';
         state.logs.forEach(log => {
@@ -224,7 +293,7 @@
         });
     });
 
-    // إدارة نظام الدردشة والتحكم
+    // أدوات توجيه الأوامر والدردشة
     const chatInput = document.getElementById('chatInput');
     const chatArea = document.getElementById('chatArea');
 
@@ -245,22 +314,22 @@
 
     document.addEventListener('keydown', (e) => {
         if(document.activeElement === chatInput) return;
-        if (['w', 'ArrowUp'].includes(e.key)) movement.up = true;
-        if (['s', 'ArrowDown'].includes(e.key)) movement.down = true;
-        if (['a', 'ArrowLeft'].includes(e.key)) movement.left = true;
-        if (['d', 'ArrowRight'].includes(e.key)) movement.right = true;
+        if (['w', 'ArrowUp', 'KeyW'].includes(e.code) || ['w', 'ArrowUp'].includes(e.key)) movement.up = true;
+        if (['s', 'ArrowDown', 'KeyS'].includes(e.code) || ['s', 'ArrowDown'].includes(e.key)) movement.down = true;
+        if (['a', 'ArrowLeft', 'KeyA'].includes(e.code) || ['a', 'ArrowLeft'].includes(e.key)) movement.left = true;
+        if (['d', 'ArrowRight', 'KeyD'].includes(e.code) || ['d', 'ArrowRight'].includes(e.key)) movement.right = true;
         socket.emit('movement', movement);
     });
 
     document.addEventListener('keyup', (e) => {
-        if (['w', 'ArrowUp'].includes(e.key)) movement.up = false;
-        if (['s', 'ArrowDown'].includes(e.key)) movement.down = false;
-        if (['a', 'ArrowLeft'].includes(e.key)) movement.left = false;
-        if (['d', 'ArrowRight'].includes(e.key)) movement.right = false;
+        if (['w', 'ArrowUp', 'KeyW'].includes(e.code) || ['w', 'ArrowUp'].includes(e.key)) movement.up = false;
+        if (['s', 'ArrowDown', 'KeyS'].includes(e.code) || ['s', 'ArrowDown'].includes(e.key)) movement.down = false;
+        if (['a', 'ArrowLeft', 'KeyA'].includes(e.code) || ['a', 'ArrowLeft'].includes(e.key)) movement.left = false;
+        if (['d', 'ArrowRight', 'KeyD'].includes(e.code) || ['d', 'ArrowRight'].includes(e.key)) movement.right = false;
         socket.emit('movement', movement);
     });
 
-    // آلية التصويب ثلاثي الأبعاد بالنقر على الأرضية من خلال الماوس
+    // التصويب وإطلاق رصاص السلاح ثلاثي الأبعاد بالنقر عبر الـ Raycaster على الخريطة
     window.addEventListener('click', (e) => {
         if (!scene || e.target.tagName === 'INPUT') return;
         const raycaster = new THREE.Raycaster();
@@ -276,12 +345,9 @@
         }
     });
 
-    // حلقة الأنيميشن المستمرة لمحرك الرندرة ثلاثي الأبعاد
     function animate() {
         requestAnimationFrame(animate);
-        if (renderer && scene && camera) {
-            renderer.render(scene, camera);
-        }
+        if (renderer && scene && camera) renderer.render(scene, camera);
     }
     animate();
 </script>
