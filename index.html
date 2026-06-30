@@ -9,7 +9,7 @@
         
         #mainMenu {
             position: absolute; width: 100%; height: 100%;
-            background: url('image_dc0ddb.jpg') no-repeat center center/cover;
+            background: #0d231a url('image_dc0ddb.jpg') no-repeat center center/cover;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             z-index: 10; color: #fff; text-shadow: 0 2px 10px rgba(0,0,0,0.8);
         }
@@ -61,8 +61,8 @@
 </head>
 <body>
 
-<audio id="starMusic" src="Mario Star Power - QuickSounds.com.mp3" loop></audio>
-<audio id="deathSound" src="Mario Death _( - QuickSounds.com.mp3"></audio>
+<audio id="starMusic" src="star.mp3" loop></audio>
+<audio id="deathSound" src="death.mp3"></audio>
 
 <div id="mainMenu">
     <div class="menu-card">
@@ -200,14 +200,21 @@
 
         init3D();
 
-        document.getElementById('starMusic').volume = 0.25;
-        document.getElementById('starMusic').play().catch(e => console.log(e));
+        // محاولة تشغيل الصوت بأمان لكي لا يتوقف الكود إذا لم يجد الملف
+        const music = document.getElementById('starMusic');
+        if (music) {
+            music.volume = 0.25;
+            music.play().catch(e => console.log("تحذير: ملف الصوت غير موجود ولكن اللعبة ستعمل بسلام."));
+        }
 
         socket.emit('initGame', { name });
     }
 
     socket.on('teamAssignment', (team) => { myTeam = team; });
-    socket.on('playerDied', () => { document.getElementById('deathSound').play(); });
+    socket.on('playerDied', () => { 
+        const dSound = document.getElementById('deathSound');
+        if (dSound) dSound.play().catch(e => {});
+    });
 
     socket.on('state', (state) => {
         if (!scene) return;
