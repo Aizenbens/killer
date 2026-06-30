@@ -137,7 +137,6 @@
             animate();
         } catch (error) {
             console.error("Three.js Init Error: ", error);
-            alert("حدث خطأ أثناء تحميل الجرافيكس، يرجى تحديث الصفحة.");
         }
     }
 
@@ -204,16 +203,16 @@
         document.getElementById('gameWrapper').style.display = 'block';
         if(window.innerWidth < 768) document.getElementById('touchUI').style.display = 'flex';
 
-        // تهيئة الأصوات بشكل آمن ومقاوم للتعليق
+        // محاولة تشغيل الأصوات بأسماء الملفات المرفوعة ولكن دون تعطيل اللعبة إن فشلت
         try {
             bgMusic = new Audio('Mario Star Power - QuickSounds.com.mp3');
             bgMusic.loop = true;
             bgMusic.volume = 0.25;
-            bgMusic.play().catch(e => console.log("Audio block bypass active"));
+            bgMusic.play().catch(e => console.log("Audio play blocked/missing"));
 
             hitSound = new Audio('Mario Death _( - QuickSounds.com.mp3');
         } catch(e) {
-            console.log("Audio elements not fully supported or files missing.");
+            console.log("Audio error skipped");
         }
 
         init3D();
@@ -277,7 +276,7 @@
                 label.id = 'label_' + id;
                 label.className = 'nametag';
                 label.innerText = p.name;
-                labelsContainer.appendChild(label);
+                if(labelsContainer) labelsContainer.appendChild(label);
             }
 
             let pg = playerGroups[id];
@@ -308,5 +307,102 @@
             }
 
             const label = document.getElementById('label_' + id);
-            if (label) {
-                const wp = new THREE.Vector3(p.x,
+            if (label && camera) {
+                const wp = new THREE.Vector3(p.x, 44, p.y);
+                wp.project(camera);
+                const screenX = (wp.x * .5 + .5) * window.innerWidth;
+                const screenY = (-(wp.y * .5) + .5) * window.innerHeight;
+                label.style.left = screenX + 'px';
+                label.style.top = screenY + 'px';
+            }
+
+            if (id === socket.id && camera) {
+                camera.position.set(p.x, 450, p.y + 380);
+                camera.lookAt(p.x, 0, p.y);
+            }
+        }
+
+        bulletMeshes.forEach(mesh => scene.remove(mesh));
+        bulletMeshes = [];
+
+        state.bullets.forEach(b => {
+            const geometry = new THREE.SphereGeometry(4, 16, 16);
+            const color = b.team === "blue" ? 0x00ffff : 0xff4500;
+            const material = new THREE.MeshBasicMaterial({ color: color });
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(b.x, 24, b.y); 
+            scene.add(mesh);
+            bulletMeshes.push(mesh);
+        });
+
+        const logBox = document.getElementById('logBox');
+        if(logBox) {
+            logBox.innerHTML = '';
+            state.logs.forEach(log => {
+                const div = document.createElement('div');
+                div.innerText = log.text;
+                logBox.appendChild(div);
+            });
+        }
+    });
+
+    const chatInput = document.getElementById('chatInput');
+    const chatArea = document.getElementById('chatArea');
+
+    if(chatInput) {
+        chatInput.addEventListener('keydown', (e) => {
+            if(e.key === 'Enter' && chatInput.value.trim() !== "") {
+                socket.emit('chatMessage', chatInput.value.trim());
+                chatInput.value = '';
+            }
+        });
+    }
+
+    socket.on('chatUpdate', (data) => {
+        if(!chatArea) return;
+        const div = document.createElement('div');
+        let tColor = data.team === "blue" ? "#3498db" : "#e74c3c";
+        div.innerHTML = `<strong style="color: ${tColor}">${data.name}:</strong> ${data.text}`;
+        chatArea.appendChild(div);
+        chatArea.scrollTop = chatArea.scrollHeight;
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if(document.activeElement === chatInput) return;
+        if (['w', 'ArrowUp', 'KeyW'].includes(e.code) || ['w', 'ArrowUp'].includes(e.key)) movement.up = true;
+        if (['s', 'ArrowDown', 'KeyS'].includes(e.code) || ['s', 'ArrowDown'].includes(e.key)) movement.down = true;
+        if (['a', 'ArrowLeft', 'KeyA'].includes(e.code) || ['a', 'ArrowLeft'].includes(e.key)) movement.left = true;
+        if (['d', 'ArrowRight', 'KeyD'].includes(e.code) || ['d', 'ArrowRight'].includes(e.key)) movement.right = true;
+        socket.emit('movement', movement);
+    });
+
+    document.addEventListener('keyup', (e) => {
+        if (['w', 'ArrowUp', 'KeyW'].includes(e.code) || ['w', 'ArrowUp'].includes(e.key)) movement.up = false;
+        if (['s', 'ArrowDown', 'KeyS'].includes(e.code) || ['s', 'ArrowDown'].includes(e.key)) movement.down = false;
+        if (['a', 'ArrowLeft', 'KeyA'].includes(e.code) || ['a', 'ArrowLeft'].includes(e.key)) movement.left = false;
+        if (['d', 'ArrowRight', 'KeyD'].includes(e.code) || ['d', 'ArrowRight'].includes(e.key)) movement.right = false;
+        socket.emit('movement', movement);
+    });
+
+    window.addEventListener('click', (e) => {
+        if (!scene || !camera || e.target.tagName === 'INPUT' || e.target.closest('.touch-controls')) return;
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        
+        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+        const targetPoint = new THREE.Vector3();
+        if (raycaster.ray.intersectPlane(plane, targetPoint)) {
+            socket.emit('shoot', { targetX: targetPoint.x, targetY: targetPoint.z });
+        }
+    });
+
+    function animate() {
+        requestAnimationFrame(animate);
+        if (renderer && scene && camera) renderer.render(scene, camera);
+    }
+</script>
+</body>
+</html>
