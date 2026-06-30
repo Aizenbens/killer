@@ -97,10 +97,11 @@ io.on('connection', (socket) => {
     let redCount = Object.values(players).filter(p => p.team === "red").length;
     let assignedTeam = blueCount <= redCount ? "blue" : "red";
 
+    // نضع الاسم فارغاً هنا حتى يتم تحديثه من القائمة فوراً
     players[socket.id] = {
         x: assignedTeam === "blue" ? 150 : 650,
         y: 300,
-        name: "زنديق",
+        name: "", 
         hp: 100,
         team: assignedTeam,
         angle: 0,
@@ -111,12 +112,12 @@ io.on('connection', (socket) => {
 
     socket.on('initGame', (data) => {
         if(players[socket.id]) {
-            players[socket.id].name = data.name;
+            // هنا يتم استقبال الاسم الصحيح الذي كتبته
+            players[socket.id].name = data.name; 
             addLog(`📢 انضم ${data.name} إلى ${players[socket.id].team === 'blue' ? 'الزنادقة الزرق' : 'الزنادقة الحمر'}`);
             socket.emit('teamAssignment', players[socket.id].team);
         }
     });
-
     socket.on('movement', (data) => {
         if (players[socket.id] && gameStatus === "active") players[socket.id].movement = data;
     });
