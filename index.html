@@ -219,3 +219,218 @@
 
         if (obstacleMeshes.length === 0 && state.obstacles) {
             state.obstacles.forEach(obs => {
+                const geo = new THREE.BoxGeometry(obs.w, 40, obs.h);
+                const mat = new THREE.MeshStandardMaterial({ color: 0x4a3321, roughness: 0.9 }); 
+                const box = new THREE.Mesh(geo, mat);
+                box.position.set(obs.x, 20, obs.y);
+                scene.add(box);
+                obstacleMeshes.push(box);
+            });
+        }
+
+        const labelsContainer = document.getElementById('labelsContainer');
+        
+        for (let id in playerGroups) {
+            if (!state.players[id] || state.players[id].hp <= 0) {
+                scene.remove(playerGroups[id]);
+                delete playerGroups[id];
+                const existingLabel = document.getElementById('label_' + id);
+                if (existingLabel) existingLabel.remove();
+            }
+        }
+
+        for (let id in state.players) {
+            let p = state.players[id];
+            if (p.hp <= 0) continue;
+
+            if (id === socket.id) {
+                const fill = document.getElementById('hpBarFill');
+                fill.style.width = p.hp + '%';
+                if (p.hp < 40) fill.style.background = '#e74c3c';
+                else fill.style.background = '#2ecc71';
+            }
+
+            if (!playerGroups[id]) {
+                const tColor = p.team === "blue" ? 0x3498db : 0xe74c3c;
+                playerGroups[id] = createStickMan(tColor);
+                scene.add(playerGroups[id]);
+
+                const label = document.createElement('div');
+                label.id = 'label_' + id;
+                label.className = 'nametag';
+                label.innerText = p.name;
+                labelsContainer.appendChild(label);
+            }
+
+            let pg = playerGroups[id];
+            pg.position.set(p.x, 0, p.y);
+            pg.rotation.y = -p.angle;
+
+            if (p.damaged) {
+                pg.traverse((child) => {
+                    if (child instanceof THREE.Mesh && child.material !== pg.userData.damageMaterial && child.geometry.type !== "CylinderGeometry" || child.position.x !== 10) {
+                        child.material = pg.userData.damageMaterial;
+                    }
+                });
+            } else {
+                pg.traverse((child) => {
+                    if (child instanceof THREE.Mesh && child.material !== pg.userData.normalMaterial && child.geometry.type !== "CylinderGeometry") {
+                        child.material = pg.userData.normalMaterial;
+                    }
+                });
+            }
+
+            if (p.isMoving) {
+                let time = Date.now() * 0.01;
+                pg.userData.leftLeg.rotation.x = Math.sin(time) * 0.6;
+                pg.userData.rightLeg.rotation.x = -Math.sin(time) * 0.6;
+            } else {
+                pg.userData.leftLeg.rotation.x = 0;
+                pg.userData.rightLeg.rotation.x = 0;
+            }
+
+            const label = document.getElementById('label_' + id);
+            if (label) {
+                const wp = new THREE.Vector3(p.x, 44, p.y);
+                wp.project(camera);
+                const screenX = (wp.x * .5 + .5) * window.innerWidth;
+                const screenY = (-(wp.y * .5) + .5) * window.innerHeight;
+                label.style.left = screenX + 'px';
+                label.style.top = screenY + 'px';
+            }
+
+            if (id === socket.id) {
+                camera.position.set(p.x, 450, p.y + 380);
+                camera.lookAt(p.x, 0, p.y);
+            }
+        }
+
+        bulletMeshes.forEach(mesh => scene.remove(mesh));
+        bulletMeshes = [];
+
+        state.bullets.forEach(b => {
+            const geometry = new THREE.SphereGeometry(4, 16, 16);
+            const color = b.team === "blue" ? 0x00ffff : 0xff4500;
+            const material = new THREE.MeshBasicMaterial({ color: color });
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(b.x, 24, b.y); 
+            scene.add(mesh);
+            bulletMeshes.push(mesh);
+        });
+
+        const logBox = document.getElementById('logBox');
+        logBox.innerHTML = '';
+        state.logs.forEach(log => {
+            const div = document.createElement('div');
+            div.innerText = log.text;
+            logBox.appendChild(div);
+        });
+    });
+
+    const chatInput = document.getElementById('chatInput');
+    const chatArea = document.getElementById('chatArea');
+
+    chatInput.addEventListener('keydown', (e) => {
+        if(e.key === 'Enter' && chatInput.value.trim() !== "") {
+            socket.emit('chatMessage', chatInput.value.trim());
+            chatInput.value = '';
+        }
+    });
+
+    socket.on('chatUpdate', (data) => {
+        const div = document.createElement('div');
+        let tColor = data.team === "blue" ? "#3498db" : "#e74c3c";
+        div.innerHTML = `<strong style="color: ${tColor}">${data.name}:</strong> ${data.text}`;
+        chatArea.appendChild(div);
+        chatArea.scrollTop = chatArea.scrollHeight;
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if(document.activeElement === chatInput) return;
+        if (['w', 'ArrowUp', 'KeyW'].includes(e.code) || ['w', 'ArrowUp'].includes(e.key)) movement.up = true;
+        if (['s', 'ArrowDown', 'KeyS'].includes(e.code) || ['s', 'ArrowDown'].includes(e.key)) movement.down = true;
+        if (['a', 'ArrowLeft', 'KeyA'].includes(e.code) || ['a', 'ArrowLeft'].includes(e.key)) movement.left = true;
+        if (['d', 'ArrowRight', 'KeyD'].includes(e.code) || ['d', 'ArrowRight'].includes(e.key)) movement.right = true;
+        socket.emit('movement', movement);
+    });
+
+    document.addEventListener('keyup', (e) => {
+        if (['w', 'ArrowUp', 'KeyW'].includes(e.code) || ['w', 'ArrowUp'].includes(e.key)) movement.up = false;
+        if (['s', 'ArrowDown', 'KeyS'].includes(e.code) || ['s', 'ArrowDown'].includes(e.key)) movement.down = false;
+        if (['a', 'ArrowLeft', 'KeyA'].includes(e.code) || ['a', 'ArrowLeft'].includes(e.key)) movement.left = false;
+        if (['d', 'ArrowRight', 'KeyD'].includes(e.code) || ['d', 'ArrowRight'].includes(e.key)) movement.right = false;
+        socket.emit('movement', movement);
+    });
+
+    window.addEventListener('click', (e) => {
+        if (!scene || e.target.tagName === 'INPUT' || e.target.closest('.touch-controls')) return;
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        
+        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+        const targetPoint = new THREE.Vector3();
+        if (raycaster.ray.intersectPlane(plane, targetPoint)) {
+            socket.emit('shoot', { targetX: targetPoint.x, targetY: targetPoint.z });
+        }
+    });
+
+    const movePad = document.getElementById('movePad');
+    const fireBtn = document.getElementById('fireBtn');
+    let moveTouchId = null;
+
+    movePad.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (moveTouchId === null) moveTouchId = e.changedTouches[0].identifier;
+    });
+
+    movePad.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        let touch = null;
+        for (let i = 0; i < e.touches.length; i++) {
+            if (e.touches[i].identifier === moveTouchId) { touch = e.touches[i]; break; }
+        }
+        if (touch) {
+            const rect = movePad.getBoundingClientRect();
+            const dx = touch.clientX - (rect.left + rect.width / 2);
+            const dy = touch.clientY - (rect.top + rect.height / 2);
+            movement.left = dx < -15; movement.right = dx > 15;
+            movement.up = dy < -15; movement.down = dy > 15;
+            socket.emit('movement', movement);
+        }
+    });
+
+    movePad.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            if (e.changedTouches[i].identifier === moveTouchId) {
+                moveTouchId = null;
+                movement.left = movement.right = movement.up = movement.down = false;
+                socket.emit('movement', movement);
+                break;
+            }
+        }
+    });
+
+    fireBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        let myPlayer = playerGroups[socket.id];
+        if (myPlayer) {
+            let angle = myPlayer.rotation.y; 
+            socket.emit('shoot', { 
+                targetX: myPlayer.position.x + Math.sin(angle) * 100, 
+                targetY: myPlayer.position.z + Math.cos(angle) * 100 
+            });
+        }
+    });
+
+    function animate() {
+        requestAnimationFrame(animate);
+        if (renderer && scene && camera) renderer.render(scene, camera);
+    }
+    animate();
+</script>
+</body>
+</html>
