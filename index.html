@@ -110,7 +110,14 @@
 </div>
 
 <script>
-    const socket = io();
+    // فحص ذكي للتأكد من وجود السيرفر لتجنب انهيار الكود وتأمين الدخول الفوري للعبة
+    let socket;
+    try {
+        socket = io();
+    } catch(e) {
+        socket = { emit: function(){}, on: function(){} };
+    }
+
     let scene, camera, renderer;
     let playerGroups = {}; 
     let bulletMeshes = [];
@@ -123,8 +130,8 @@
         try {
             const container = document.getElementById('gameWrapper');
             scene = new THREE.Scene();
-            scene.background = new THREE.Color('#030107'); 
-            scene.fog = new THREE.FogExp2('#030107', 0.0025);
+            scene.background = new THREE.Color('#0a0418'); 
+            scene.fog = new THREE.FogExp2('#0a0418', 0.001); // تقليل الضباب لزيادة وضوح الرؤية
 
             camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 2000);
             camera.position.set(400, 320, 520);
@@ -132,30 +139,53 @@
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            renderer.toneMappingExposure = 1.3;
+            renderer.toneMappingExposure = 1.5; // رفع التعريض الضوئي الإجمالي للعبة
             container.appendChild(renderer.domElement);
 
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.25);
+            // تعديل: رفع مستوى الإضاءة العامة (AmbientLight) لتصبح الخريطة مضيئة جداً وواضحة
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
             scene.add(ambientLight);
             
-            const dirLight = new THREE.DirectionalLight(0x3498db, 0.4);
-            dirLight.position.set(300, 500, 400);
+            // إضافة ضوء اتجاهي قوي يحاكي ضوء الشمس/القمر النيوني اللامع
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(400, 600, 300);
             scene.add(dirLight);
 
             const floorGeo = new THREE.PlaneGeometry(1200, 900);
-            const floorMat = new THREE.MeshStandardMaterial({ color: 0x05020c, roughness: 0.5, metalness: 0.4 });
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0x140d2b, roughness: 0.4, metalness: 0.4 });
             const floor = new THREE.Mesh(floorGeo, floorMat);
             floor.rotation.x = -Math.PI / 2;
             floor.position.set(400, 0, 300);
             scene.add(floor);
 
-            const gridHelper = new THREE.GridHelper(1500, 60, 0x9b59b6, 0x140824);
+            const gridHelper = new THREE.GridHelper(1500, 60, 0x9b59b6, 0x3d1b6e);
             gridHelper.position.set(400, 0.6, 300);
             scene.add(gridHelper);
+
+            // إنشاء لاعب افتراضي فوراً حتى لو لم يستجب السيرفر لضمان دخول اللعبة وظهور الشخصية
+            createLocalPlayerOffline();
 
             window.addEventListener('resize', onWindowResize);
             animate();
         } catch (error) {}
+    }
+
+    function createLocalPlayerOffline() {
+        // توليد عوائق افتراضية مضيئة محلياً في حال عدم الاتصال بسيرفر
+        const offlineObstacles = [
+            {x: 250, y: 200, w: 100, h: 40},
+            {x: 550, y: 400, w: 120, h: 40},
+            {x: 400, y: 150, w: 40, h: 100}
+        ];
+        buildObstacles(offlineObstacles);
+
+        // إنشاء مجسم اللاعب محلياً
+        const localId = "local_player";
+        if (!playerGroups[localId]) {
+            playerGroups[localId] = createStickMan(0x3498db);
+            scene.add(playerGroups[localId]);
+            playerGroups[localId].position.set(400, 0, 300);
+        }
     }
 
     function onWindowResize() {
@@ -172,7 +202,7 @@
             baseColor: teamColor,
             normalMaterial: new THREE.MeshStandardMaterial({ color: teamColor, roughness: 0.2, metalness: 0.5 }),
             damageMaterial: new THREE.MeshBasicMaterial({ color: 0xffffff }),
-            armorMaterial: new THREE.MeshStandardMaterial({ color: 0x1b1526, roughness: 0.3, metalness: 0.7 }),
+            armorMaterial: new THREE.MeshStandardMaterial({ color: 0x221a36, roughness: 0.3, metalness: 0.7 }),
             visorMaterial: new THREE.MeshBasicMaterial({ color: teamColor === 0x3498db ? 0x00ffff : 0xff3366 })
         };
 
@@ -241,10 +271,39 @@
         return group;
     }
 
+    function buildObstacles(obstaclesList) {
+        if (obstacleMeshes.length > 0) return;
+        obstaclesList.forEach((obs, index) => {
+            const obsGroup = new THREE.Group();
+            const geo = new THREE.BoxGeometry(obs.w, 38, obs.h);
+            const mat = new THREE.MeshStandardMaterial({ color: 0x22173b, roughness: 0.3, metalness: 0.8 }); 
+            const box = new THREE.Mesh(geo, mat);
+            box.position.y = 19;
+            obsGroup.add(box);
+
+            const neonGeo = new THREE.BoxGeometry(obs.w + 1.5, 2.5, obs.h + 1.5);
+            const lightColor = index % 2 === 0 ? 0x00ffff : 0xd146ff; 
+            const neonMat = new THREE.MeshBasicMaterial({ color: lightColor });
+            const neon = new THREE.Mesh(neonGeo, neonMat);
+            neon.position.y = 38;
+            obsGroup.add(neon);
+
+            // تعديل: رفع قوة ونطاق إضاءة الكشافات لملء الخريطة بنور ساطع
+            const pointLight = new THREE.PointLight(lightColor, 5.0, 400);
+            pointLight.position.set(0, 45, 0);
+            obsGroup.add(pointLight);
+
+            obsGroup.position.set(obs.x, 0, obs.y);
+            scene.add(obsGroup);
+            obstacleMeshes.push(obsGroup);
+        });
+    }
+
     document.getElementById('startBtn').addEventListener('click', function() {
         const nameInput = document.getElementById('playerName');
         const name = nameInput.value.trim() || "مقاتل_" + Math.floor(Math.random()*100);
         
+        // الدخول الفوري والمباشر للشاشة دون انتظار رد السيرفر لمنع أي تعليق
         document.getElementById('mainMenu').style.display = 'none';
         document.getElementById('gameWrapper').style.display = 'block';
         
@@ -261,35 +320,19 @@
     socket.on('state', (state) => {
         if (!scene) return;
 
+        // إزالة اللاعب الافتراضي الأوفلاين بمجرد بدء السيرفر في إرسال البيانات الحقيقية
+        if(playerGroups["local_player"]) {
+            scene.remove(playerGroups["local_player"]);
+            delete playerGroups["local_player"];
+        }
+
         if(state.score) {
             document.getElementById('blueScore').innerText = state.score.blue;
             document.getElementById('redScore').innerText = state.score.red;
         }
 
-        if (obstacleMeshes.length === 0 && state.obstacles) {
-            state.obstacles.forEach((obs, index) => {
-                const obsGroup = new THREE.Group();
-                const geo = new THREE.BoxGeometry(obs.w, 38, obs.h);
-                const mat = new THREE.MeshStandardMaterial({ color: 0x140d24, roughness: 0.4, metalness: 0.8 }); 
-                const box = new THREE.Mesh(geo, mat);
-                box.position.y = 19;
-                obsGroup.add(box);
-
-                const neonGeo = new THREE.BoxGeometry(obs.w + 1.5, 2.5, obs.h + 1.5);
-                const lightColor = index % 2 === 0 ? 0x3498db : 0x9b59b6; 
-                const neonMat = new THREE.MeshBasicMaterial({ color: lightColor });
-                const neon = new THREE.Mesh(neonGeo, neonMat);
-                neon.position.y = 38;
-                obsGroup.add(neon);
-
-                const pointLight = new THREE.PointLight(lightColor, 2.5, 220);
-                pointLight.position.set(0, 45, 0);
-                obsGroup.add(pointLight);
-
-                obsGroup.position.set(obs.x, 0, obs.y);
-                scene.add(obsGroup);
-                obstacleMeshes.push(obsGroup);
-            });
+        if (state.obstacles) {
+            buildObstacles(state.obstacles);
         }
 
         const labelsContainer = document.getElementById('labelsContainer');
@@ -324,4 +367,135 @@
                 label.id = 'label_' + id;
                 label.className = 'nametag';
                 label.innerText = p.name;
-                if(labelsContainer) labelsContainer.appendChild(label
+                if(labelsContainer) labelsContainer.appendChild(label);
+            }
+
+            let pg = playerGroups[id];
+            pg.position.set(p.x, 0, p.y);
+            pg.rotation.y = -p.angle;
+
+            if (p.isMoving) {
+                let time = Date.now() * 0.015;
+                pg.userData.leftLeg.rotation.x = Math.sin(time) * 0.7;
+                pg.userData.rightLeg.rotation.x = -Math.sin(time) * 0.7;
+            } else {
+                pg.userData.leftLeg.rotation.x = 0;
+                pg.userData.rightLeg.rotation.x = 0;
+            }
+
+            const label = document.getElementById('label_' + id);
+            if (label && camera) {
+                const wp = new THREE.Vector3(p.x, 48, p.y);
+                wp.project(camera);
+                label.style.left = ((wp.x * .5 + .5) * window.innerWidth) + 'px';
+                label.style.top = ((-(wp.y * .5) + .5) * window.innerHeight) + 'px';
+            }
+
+            if (id === socket.id && camera) {
+                camera.position.set(p.x, 320, p.y + 260);
+                camera.lookAt(p.x, 15, p.y);
+            }
+        }
+
+        bulletMeshes.forEach(mesh => scene.remove(mesh));
+        bulletMeshes = [];
+
+        state.bullets.forEach(b => {
+            const geometry = new THREE.SphereGeometry(3.8, 16, 16);
+            const color = b.team === "blue" ? 0x00ffff : 0xff3838;
+            const mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: color }));
+            mesh.position.set(b.x, 23, b.y); 
+            scene.add(mesh);
+            bulletMeshes.push(mesh);
+        });
+    });
+
+    // تحكم محلي احتياطي للاعب الافتراضي للتحرك في حال عدم وجود سيرفر
+    function handleLocalMovementOffline() {
+        if(!playerGroups["local_player"]) return;
+        let speed = 2.5;
+        let localPlayer = playerGroups["local_player"];
+        if(movement.up) localPlayer.position.z -= speed;
+        if(movement.down) localPlayer.position.z += speed;
+        if(movement.left) localPlayer.position.x -= speed;
+        if(movement.right) localPlayer.position.x += speed;
+        
+        // جعل الكاميرا تتبع اللاعب المحلي الأوفلاين أيضاً
+        camera.position.set(localPlayer.position.x, 320, localPlayer.position.z + 260);
+        camera.lookAt(localPlayer.position.x, 15, localPlayer.position.z);
+    }
+
+    const joyZone = document.getElementById('joyZone');
+    const joyStick = document.getElementById('joyStick');
+    let joyActive = false;
+
+    joyZone.addEventListener('touchstart', (e) => { joyActive = true; }, false);
+    window.addEventListener('touchmove', (e) => {
+        if (!joyActive) return;
+        e.preventDefault();
+        let touch = e.touches[0];
+        let rect = joyZone.getBoundingClientRect();
+        let deltaX = touch.clientX - (rect.left + rect.width / 2);
+        let deltaY = touch.clientY - (rect.top + rect.height / 2);
+        let distance = Math.min(Math.sqrt(deltaX*deltaX + deltaY*deltaY), 35);
+        let angle = Math.atan2(deltaY, deltaX);
+
+        joyStick.style.transform = `translate(${Math.cos(angle)*distance}px, ${Math.sin(angle)*distance}px)`;
+        movement.up = deltaY < -12; movement.down = deltaY > 12; movement.left = deltaX < -12; movement.right = deltaX > 12;
+        socket.emit('movement', movement);
+    }, { passive: false });
+
+    window.addEventListener('touchend', () => {
+        joyActive = false; joyStick.style.transform = 'translate(0px, 0px)';
+        movement.up = false; movement.down = false; movement.left = false; movement.right = false;
+        socket.emit('movement', movement);
+    });
+
+    document.getElementById('fireBtn').addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        let activePlayer = playerGroups[socket.id] || playerGroups["local_player"];
+        if (!activePlayer) return; 
+        let angle = activePlayer.rotation.y;
+        socket.emit('shoot', { targetX: myPlayerPos.x + Math.sin(angle)*120, targetY: myPlayerPos.y - Math.cos(angle)*120 });
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (['w', 'ArrowUp', 'KeyW'].includes(e.code) || ['w', 'ArrowUp'].includes(e.key)) movement.up = true;
+        if (['s', 'ArrowDown', 'KeyS'].includes(e.code) || ['s', 'ArrowDown'].includes(e.key)) movement.down = true;
+        if (['a', 'ArrowLeft', 'KeyA'].includes(e.code) || ['a', 'ArrowLeft'].includes(e.key)) movement.left = true;
+        if (['d', 'ArrowRight', 'KeyD'].includes(e.code) || ['d', 'ArrowRight'].includes(e.key)) movement.right = true;
+        socket.emit('movement', movement);
+    });
+
+    document.addEventListener('keyup', (e) => {
+        if (['w', 'ArrowUp', 'KeyW'].includes(e.code) || ['w', 'ArrowUp'].includes(e.key)) movement.up = false;
+        if (['s', 'ArrowDown', 'KeyS'].includes(e.code) || ['s', 'ArrowDown'].includes(e.key)) movement.down = false;
+        if (['a', 'ArrowLeft', 'KeyA'].includes(e.code) || ['a', 'ArrowLeft'].includes(e.key)) movement.left = false;
+        if (['d', 'ArrowRight', 'KeyD'].includes(e.code) || ['d', 'ArrowRight'].includes(e.key)) movement.right = false;
+        socket.emit('movement', movement);
+    });
+
+    window.addEventListener('click', (e) => {
+        if (!scene || !camera || e.target.tagName === 'INPUT' || e.target.closest('#chatContainer') || e.target.closest('.touch-controls')) return;
+        
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        
+        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+        const targetPoint = new THREE.Vector3();
+        if (raycaster.ray.intersectPlane(plane, targetPoint)) {
+            socket.emit('shoot', { targetX: targetPoint.x, targetY: targetPoint.z });
+        }
+    });
+
+    function animate() {
+        requestAnimationFrame(animate);
+        handleLocalMovementOffline(); // تشغيل تحريك أوفلاين في حال غياب السيرفر
+        if (renderer && scene && camera) renderer.render(scene, camera);
+    }
+</script>
+</body>
+</html>
