@@ -1,15 +1,17 @@
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-app.use(express.static(__dirname));
+// قراءة كافة الملفات والصور والأصوات من المجلد الحالي بشكل صحيح
+app.use(express.static(path.join(__dirname)));
 
 app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/index.html');
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 let players = {};
@@ -18,7 +20,6 @@ let logs = [];
 let score = { blue: 0, red: 0 };
 let gameStatus = "active"; 
 
-// إحداثيات العقبات في الغابة
 const OBSTACLES = [
     { x: 400, y: 300, w: 60, h: 60 },
     { x: 200, y: 150, w: 50, h: 50 },
@@ -26,8 +27,6 @@ const OBSTACLES = [
     { x: 600, y: 150, w: 50, h: 50 },
     { x: 600, y: 450, w: 50, h: 50 }
 ];
-
-const MAP = { width: 800, height: 600, color: '#1b4d3e' };
 
 function addLog(text) {
     logs.push({ text, id: Date.now() });
@@ -49,15 +48,15 @@ function checkRoundEnd() {
 
     let totalPlayers = Object.keys(players).length;
     if (totalPlayers > 1 && (!blueAlive || !redAlive)) {
-        let roundWinner = !blueAlive ? "الحمر" : "الزرق";
+        let roundWinner = !blueAlive ? "الزنادقة الحمر" : "الزنادقة الزرق";
         let teamKey = !blueAlive ? "red" : "blue";
         
         score[teamKey]++;
-        addLog(`🎉 فاز الفريق ${roundWinner} بالجولة!`);
+        addLog(`🎉 فاز فريق ${roundWinner} بالجولة!`);
 
         if (score[teamKey] >= 5) {
             gameStatus = "finished";
-            addLog(`🏆 النصر النهائي للفريق ${roundWinner} (5 جولات)!`);
+            addLog(`🏆 النصر النهائي لـ ${roundWinner} (5 جولات)!`);
             setTimeout(resetEntireGame, 5000);
         } else {
             gameStatus = "intermission";
@@ -75,7 +74,7 @@ function resetRound() {
     }
     bullets = [];
     gameStatus = "active";
-    addLog("⚔️ بدأت جولة جديدة في الغابة!");
+    addLog("⚔️ جولة جديدة بدأت في ساحة الزنادقة!");
 }
 
 function resetEntireGame() {
@@ -101,19 +100,19 @@ io.on('connection', (socket) => {
     players[socket.id] = {
         x: assignedTeam === "blue" ? 150 : 650,
         y: 300,
-        name: "جندي",
+        name: "زنديق",
         hp: 100,
         team: assignedTeam,
         angle: 0,
         isMoving: false,
-        damaged: false, // خاصية لتتبع وميض الضرر
+        damaged: false,
         movement: {}
     };
 
     socket.on('initGame', (data) => {
         if(players[socket.id]) {
             players[socket.id].name = data.name;
-            addLog(`📢 انضم ${data.name} للفريق ${players[socket.id].team === 'blue' ? 'الأزرق' : 'الأحمر'}`);
+            addLog(`📢 انضم ${data.name} إلى ${players[socket.id].team === 'blue' ? 'الزنادقة الزرق' : 'الزنادقة الحمر'}`);
             socket.emit('teamAssignment', players[socket.id].team);
         }
     });
@@ -136,7 +135,6 @@ io.on('connection', (socket) => {
                 ownerId: socket.id,
                 team: p.team
             });
-            io.emit('playShootSound');
         }
     });
 
@@ -154,7 +152,6 @@ io.on('connection', (socket) => {
     });
 });
 
-// حلقة اللعبة
 setInterval(() => {
     for (let id in players) {
         let p = players[id];
@@ -198,12 +195,11 @@ setInterval(() => {
                 let dist = Math.hypot(b.x - p.x, b.y - p.y);
                 if (dist < 20) {
                     p.hp -= 25; 
-                    p.damaged = true; // تفعيل وميض الضرر
+                    p.damaged = true; 
                     
                     bullets.splice(i, 1);
                     bulletRemoved = true;
 
-                    // إلغاء وميض الضرر بعد 150 مللي ثانية تلقائياً عبر حدث العميل
                     setTimeout(() => { if(players[id]) players[id].damaged = false; }, 150);
 
                     if (p.hp <= 0) {
