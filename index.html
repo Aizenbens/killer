@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>لعبة المواجهة الكبرى أونلاين</title>
+    <title>the war of زنادقة </title>
     <style>
-        body { margin: 0; background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; touch-action: none; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { margin: 0; background: #000; overflow: hidden; touch-action: none; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         
         #mainMenu {
             position: absolute; width: 100%; height: 100%;
@@ -18,17 +18,13 @@
             box-shadow: 0 0 25px rgba(255,255,255,0.1); width: 320px; text-align: center; border: 1px solid rgba(255,255,255,0.2);
         }
         h1 { margin-top: 0; font-size: 28px; letter-spacing: 2px; color: #f3f3f3; }
-        input, select, button {
-            width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box;
-        }
+        input, select, button { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box; }
         input, select { background: rgba(255,255,255,0.9); color: #222; font-weight: bold; }
         button { background: #fff; color: #000; font-weight: bold; cursor: pointer; transition: 0.2s; }
         button:hover { background: #ccc; transform: scale(1.02); }
 
-        #gameWrapper { display: none; position: relative; width: 800px; height: 600px; max-width: 100%; max-height: 100%; }
-        canvas { border: 3px solid #fff; box-shadow: 0 0 20px rgba(255,255,255,0.3); width: 100%; height: 100%; }
+        #gameWrapper { display: none; position: relative; width: 100vw; height: 100vh; }
         
-        /* عداد جولات علوي عصري للفرق */
         #scoreboard {
             position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
             background: rgba(0,0,0,0.8); padding: 10px 25px; border-radius: 30px;
@@ -38,11 +34,11 @@
         .blue-team-score { color: #3498db; }
         .red-team-score { color: #e74c3c; }
 
-        #logBox { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: #fff; padding: 10px; border-radius: 5px; font-size: 13px; max-width: 220px; pointer-events: none; direction: rtl; }
+        #logBox { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: #fff; padding: 10px; border-radius: 5px; font-size: 13px; max-width: 220px; pointer-events: none; direction: rtl; z-index: 4; }
         
         #chatContainer {
             position: absolute; bottom: 15px; left: 15px; width: 260px;
-            background: rgba(0,0,0,0.6); border-radius: 8px; padding: 10px; display: flex; flex-direction: column;
+            background: rgba(0,0,0,0.6); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; z-index: 4;
         }
         #chatArea { height: 120px; overflow-y: auto; color: #fff; font-size: 13px; margin-bottom: 5px; text-align: right; direction: rtl; }
         #chatInput { padding: 6px; margin: 0; font-size: 13px; width: 100%; background: rgba(255,255,255,0.2); color: #fff; border: 1px solid #777; }
@@ -52,6 +48,7 @@
         .fire-btn { background: rgba(255, 0, 0, 0.4); border-color: #ff4444; }
         @media (min-width: 768px) { .touch-controls { display: none; } }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
@@ -61,14 +58,12 @@
 
 <div id="mainMenu">
     <div class="menu-card">
-        <h1>المواجهة الكبرى</h1>
+        <h1>المواجهة الكبرى 3D</h1>
         <input type="text" id="playerName" placeholder="أدخل اسم البطل..." maxlength="12">
-        
         <select id="gameMode">
+            <option value="single">لعب فردي (ضد 3 بوتات)</option>
             <option value="multi">لعب جماعي (أونلاين)</option>
-            <option value="single">لعب فردي (ضد البوتات)</option>
         </select>
-        
         <button onclick="startGame()">ابدأ المعركة 🔥</button>
     </div>
 </div>
@@ -79,10 +74,7 @@
         <span>🆚</span>
         <span class="red-team-score"><span id="redScore">0</span> :الفريق الأحمر</span>
     </div>
-
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
     <div id="logBox"></div>
-    
     <div id="chatContainer">
         <div id="chatArea"></div>
         <input type="text" id="chatInput" placeholder="اكتب رسالة واضغط Enter..." maxlength="40">
@@ -96,31 +88,51 @@
 
 <script>
     const socket = io();
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    
-    // صوت الليزر التكميلي عند إطلاق الرصاص
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    function playLaserSound() {
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(400, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.15);
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.15);
-    }
-
-    let players = {};
-    let bullets = [];
-    let mapBgColor = '#111';
+    let scene, camera, renderer;
+    let playerMeshes = {};
+    let bulletMeshes = [];
+    let myId = null;
     let myTeam = "blue";
     const movement = { up: false, down: false, left: false, right: false };
+
+    // إعداد بيئة 3D الأساسية عند فتح اللعبة
+    function init3D() {
+        const container = document.getElementById('gameWrapper');
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color('#050505');
+
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+        // ضبط زاوية الكاميرا العلوية المائلة لتعطي رؤية استراتيجية ممتازة للاعب
+        camera.position.set(400, 500, 750);
+        camera.lookAt(400, 0, 300);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        container.appendChild(renderer.domElement);
+
+        // إضافة إضاءة المحيط والضوء الساطع للمجسمات ثلاثية الأبعاد
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(400, 600, 400);
+        scene.add(dirLight);
+
+        // إنشاء أرضية المعركة ثلاثية الأبعاد
+        const floorGeo = new THREE.PlaneGeometry(800, 600);
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0x161616, roughness: 0.8 });
+        const floor = new THREE.Mesh(floorGeo, floorMat);
+        floor.rotation.x = -Math.PI / 2;
+        floor.position.set(400, 0, 300);
+        scene.add(floor);
+
+        window.addEventListener('resize', onWindowResize);
+    }
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
 
     function startGame() {
         const name = document.getElementById('playerName').value.trim() || "بطل_" + Math.floor(Math.random()*100);
@@ -130,38 +142,79 @@
         document.getElementById('gameWrapper').style.display = 'block';
         if(window.innerWidth < 768) document.getElementById('touchUI').style.display = 'flex';
 
-        // تشغيل أغنية البداية Mario Star Power المضافة في الخلفية بشكل متكرر
+        init3D();
+
         const starMusic = document.getElementById('starMusic');
         starMusic.volume = 0.25;
-        starMusic.play().catch(e => console.log("المتصفح حظر التشغيل الأولي:", e));
+        starMusic.play().catch(e => console.log(e));
 
         socket.emit('initGame', { name, mode, team: myTeam });
     }
 
-    socket.on('teamAssignment', (team) => {
-        myTeam = team;
-    });
+    socket.on('connect', () => { myId = socket.id; });
+    socket.on('teamAssignment', (team) => { myTeam = team; });
 
-    socket.on('playShootSound', () => playLaserSound());
-
-    // استقبال حدث الموت لتشغيل صوت الخسارة Mario Death خصيصاً للشخص الخاسر
     socket.on('playerDied', () => {
         const deathSound = document.getElementById('deathSound');
         deathSound.volume = 0.6;
         deathSound.play();
     });
 
+    // تحديث كافة الكائنات والمجسمات القادمة من السيرفر في كل إطار 3D
     socket.on('state', (state) => {
-        players = state.players;
-        bullets = state.bullets;
-        if(state.mapConfig) mapBgColor = state.mapConfig.color;
+        if (!scene) return;
 
-        // تحديث النقاط والجولات على اللوحة العلوية
         if(state.score) {
             document.getElementById('blueScore').innerText = state.score.blue;
             document.getElementById('redScore').innerText = state.score.red;
         }
 
+        // تحديث وإدارة مجسمات اللاعبين والبوتات
+        for (let id in playerMeshes) {
+            if (!state.players[id] || state.players[id].hp <= 0) {
+                scene.remove(playerMeshes[id]);
+                delete playerMeshes[id];
+            }
+        }
+
+        for (let id in state.players) {
+            let p = state.players[id];
+            if (p.hp <= 0) continue;
+
+            if (!playerMeshes[id]) {
+                // إنشاء مجسم كروي ثلاثي الأبعاد لكل مقاتل
+                const geometry = new THREE.SphereGeometry(15, 32, 32);
+                const color = p.team === "blue" ? 0x3498db : 0xe74c3c;
+                const material = new THREE.MeshStandardMaterial({ color: color, roughness: 0.3, metalness: 0.2 });
+                const mesh = new THREE.Mesh(geometry, material);
+                scene.add(mesh);
+                playerMeshes[id] = mesh;
+            }
+            // ربط الإحداثيات الثنائية بمحاور الـ 3D (X و Z يمثلان الأرض، و Y الارتفاع)
+            playerMeshes[id].position.set(p.x, 15, p.y);
+            
+            // جعل الكاميرا تتبع مكان لاعبك الحقيقي بسلاسة من الأعلى
+            if (id === socket.id) {
+                camera.position.set(p.x, 450, p.y + 400);
+                camera.lookAt(p.x, 0, p.y);
+            }
+        }
+
+        // تحديث وإدارة مجسمات الرصاص المتوهج
+        bulletMeshes.forEach(mesh => scene.remove(mesh));
+        bulletMeshes = [];
+
+        state.bullets.forEach(b => {
+            const geometry = new THREE.SphereGeometry(5, 16, 16);
+            const color = b.team === "blue" ? 0x85c1e9 : 0xf1948a;
+            const material = new THREE.MeshBasicMaterial({ color: color });
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(b.x, 15, b.y);
+            scene.add(mesh);
+            bulletMeshes.push(mesh);
+        });
+
+        // تحديث لوحة السجلات والرسائل
         const logBox = document.getElementById('logBox');
         logBox.innerHTML = '';
         state.logs.forEach(log => {
@@ -171,6 +224,7 @@
         });
     });
 
+    // إدارة نظام الدردشة والتحكم
     const chatInput = document.getElementById('chatInput');
     const chatArea = document.getElementById('chatArea');
 
@@ -206,89 +260,30 @@
         socket.emit('movement', movement);
     });
 
-    document.addEventListener('click', (e) => {
-        if(e.target.tagName === 'CANVAS') {
-            const rect = canvas.getBoundingClientRect();
-            const mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
-            const mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
-            socket.emit('shoot', { targetX: mouseX, targetY: mouseY });
+    // آلية التصويب ثلاثي الأبعاد بالنقر على الأرضية من خلال الماوس
+    window.addEventListener('click', (e) => {
+        if (!scene || e.target.tagName === 'INPUT') return;
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        
+        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+        const targetPoint = new THREE.Vector3();
+        if (raycaster.ray.intersectPlane(plane, targetPoint)) {
+            socket.emit('shoot', { targetX: targetPoint.x, targetY: targetPoint.z });
         }
     });
 
-    const movePad = document.getElementById('movePad');
-    movePad.addEventListener('touchmove', (e) => {
-        const touch = e.touches[0];
-        const rect = movePad.getBoundingClientRect();
-        const dx = touch.clientX - (rect.left + rect.width / 2);
-        const dy = touch.clientY - (rect.top + rect.height / 2);
-        movement.left = dx < -15; movement.right = dx > 15;
-        movement.up = dy < -15; movement.down = dy > 15;
-        socket.emit('movement', movement);
-    });
-    movePad.addEventListener('touchend', () => {
-        movement.left = movement.right = movement.up = movement.down = false;
-        socket.emit('movement', movement);
-    });
-    document.getElementById('fireBtn').addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        let myPlayer = players[socket.id];
-        if (myPlayer && myPlayer.hp > 0) socket.emit('shoot', { targetX: myPlayer.x + 120, targetY: myPlayer.y });
-    });
-
-    function draw() {
-        ctx.fillStyle = mapBgColor;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        for (let id in players) {
-            let p = players[id];
-            if (p.hp <= 0) continue;
-
-            ctx.beginPath();
-            ctx.arc(p.x, p.y + 4, 15, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(0,0,0,0.3)';
-            ctx.fill();
-
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, 15, 0, Math.PI * 2);
-            // تحديد لون الجسم بناءً على فريقه (أزرق #3498db أو أحمر #e74c3c)
-            ctx.fillStyle = p.team === "blue" ? '#3498db' : '#e74c3c';
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 2;
-            ctx.fill();
-            ctx.stroke();
-
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
-            ctx.fillStyle = '#fff';
-            ctx.fill();
-
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 12px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText(p.name, p.x, p.y - 25);
-
-            ctx.fillStyle = 'rgba(255,255,255,0.2)';
-            ctx.fillRect(p.x - 20, p.y - 18, 40, 5);
-            ctx.fillStyle = p.team === "blue" ? '#3498db' : '#e74c3c';
-            ctx.fillRect(p.x - 20, p.y - 18, (p.hp / 100) * 40, 5);
+    // حلقة الأنيميشن المستمرة لمحرك الرندرة ثلاثي الأبعاد
+    function animate() {
+        requestAnimationFrame(animate);
+        if (renderer && scene && camera) {
+            renderer.render(scene, camera);
         }
-
-        bullets.forEach(b => {
-            ctx.save();
-            ctx.shadowBlur = 10;
-            // لون الرصاص يتبع لون فريق مطلقها لتمييز المقذوفات
-            ctx.shadowColor = b.team === "blue" ? '#3498db' : '#e74c3c';
-            ctx.beginPath();
-            ctx.arc(b.x, b.y, 5, 0, Math.PI * 2);
-            ctx.fillStyle = b.team === "blue" ? '#85c1e9' : '#f1948a';
-            ctx.fill();
-            ctx.restore();
-        });
-
-        requestAnimationFrame(draw);
     }
-    draw();
+    animate();
 </script>
 </body>
 </html>
