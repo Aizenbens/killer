@@ -18,16 +18,16 @@ let logs = [];
 let score = { blue: 0, red: 0 };
 let gameStatus = "active"; 
 
-// إحداثيات وأبعاد العقبات الثابتة في الغابة (صناديق/أشجار افتراضية)
+// إحداثيات العقبات في الغابة
 const OBSTACLES = [
-    { x: 400, y: 300, w: 60, h: 60 }, // العقبة الوسطى
+    { x: 400, y: 300, w: 60, h: 60 },
     { x: 200, y: 150, w: 50, h: 50 },
     { x: 200, y: 450, w: 50, h: 50 },
     { x: 600, y: 150, w: 50, h: 50 },
     { x: 600, y: 450, w: 50, h: 50 }
 ];
 
-const MAP = { width: 800, height: 600, color: '#1b4d3e' }; // لون الغابة
+const MAP = { width: 800, height: 600, color: '#1b4d3e' };
 
 function addLog(text) {
     logs.push({ text, id: Date.now() });
@@ -47,7 +47,6 @@ function checkRoundEnd() {
         }
     }
 
-    // تنتهي الجولة فقط إذا كان هناك لاعبون متصلون ومات أحدهم
     let totalPlayers = Object.keys(players).length;
     if (totalPlayers > 1 && (!blueAlive || !redAlive)) {
         let roundWinner = !blueAlive ? "الحمر" : "الزرق";
@@ -72,6 +71,7 @@ function resetRound() {
         players[id].hp = 100;
         players[id].x = players[id].team === "blue" ? 150 : 650;
         players[id].y = 200 + Math.random() * 200;
+        players[id].damaged = false;
     }
     bullets = [];
     gameStatus = "active";
@@ -83,7 +83,6 @@ function resetEntireGame() {
     resetRound();
 }
 
-// دالة فحص تصادم الكائنات (اللاعب أو الرصاص) مع العقبات
 function checkObstacleCollision(x, y, radius) {
     for (let obs of OBSTACLES) {
         if (x + radius > obs.x - obs.w/2 && x - radius < obs.x + obs.w/2 &&
@@ -106,6 +105,8 @@ io.on('connection', (socket) => {
         hp: 100,
         team: assignedTeam,
         angle: 0,
+        isMoving: false,
+        damaged: false, // خاصية لتتبع وميض الضرر
         movement: {}
     };
 
@@ -125,7 +126,7 @@ io.on('connection', (socket) => {
         let p = players[socket.id];
         if (p && p.hp > 0 && gameStatus === "active") {
             let angle = Math.atan2(target.targetY - p.y, target.targetX - p.x);
-            p.angle = angle; // تحديث زاوية اتجاه الشخصية والسلاح ليوجه نحو الماوس
+            p.angle = angle; 
             
             bullets.push({
                 x: p.x + Math.cos(angle) * 25, 
@@ -153,7 +154,7 @@ io.on('connection', (socket) => {
     });
 });
 
-// حلقة اللعبة الرئيسية (60 إطار بالثانية)
+// حلقة اللعبة
 setInterval(() => {
     for (let id in players) {
         let p = players[id];
@@ -161,33 +162,30 @@ setInterval(() => {
             let oldX = p.x;
             let oldY = p.y;
             
-            // حساب حركات اللاعب مع فحص حدود الخريطة
-            if (p.movement.up && p.y > 20) p.y -= 4;
-            if (p.movement.down && p.y < 580) p.y += 4;
-            if (p.movement.left && p.x > 20) p.x -= 4;
-            if (p.movement.right && p.x < 780) p.x += 4;
+            p.isMoving = false;
+            if (p.movement.up) { p.y -= 4; p.isMoving = true; }
+            if (p.movement.down) { p.y += 4; p.isMoving = true; }
+            if (p.movement.left) { p.x -= 4; p.isMoving = true; }
+            if (p.movement.right) { p.x += 4; p.isMoving = true; }
 
-            // تحديث زاوية الدوران بناءً على اتجاه الحركة الافتراضي إذا لم يطلق النار
             if (p.movement.left) p.angle = Math.PI;
             else if (p.movement.right) p.angle = 0;
             else if (p.movement.up) p.angle = -Math.PI / 2;
             else if (p.movement.down) p.angle = Math.PI / 2;
 
-            // الارتداد ومنع المشي فوق العقبات المتواجدة في الغابة
             if (checkObstacleCollision(p.x, p.y, 15)) {
                 p.x = oldX;
                 p.y = oldY;
+                p.isMoving = false;
             }
         }
     }
 
-    // حركة وتصادم الرصاص
     for (let i = bullets.length - 1; i >= 0; i--) {
         let b = bullets[i];
         b.x += b.vx;
         b.y += b.vy;
 
-        // الرصاص يختفي إذا اصطدم بعقبة حماية في الغابة
         if (checkObstacleCollision(b.x, b.y, 5)) {
             bullets.splice(i, 1);
             continue;
@@ -200,8 +198,13 @@ setInterval(() => {
                 let dist = Math.hypot(b.x - p.x, b.y - p.y);
                 if (dist < 20) {
                     p.hp -= 25; 
+                    p.damaged = true; // تفعيل وميض الضرر
+                    
                     bullets.splice(i, 1);
                     bulletRemoved = true;
+
+                    // إلغاء وميض الضرر بعد 150 مللي ثانية تلقائياً عبر حدث العميل
+                    setTimeout(() => { if(players[id]) players[id].damaged = false; }, 150);
 
                     if (p.hp <= 0) {
                         let killer = players[b.ownerId] ? players[b.ownerId].name : "مجهول";
@@ -222,4 +225,4 @@ setInterval(() => {
 }, 1000 / 60);
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`السيرفر يعمل بنجاح على البورت ${PORT}`));
+server.listen(PORT, () => console.log(`السيرفر يعمل على البورت ${PORT}`));
