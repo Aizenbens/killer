@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>the war of زنادقة</title>
+    <title>THE WAR</title>
     <style>
         body { margin: 0; background: #000; overflow: hidden; touch-action: none; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         
@@ -17,10 +17,10 @@
             background: rgba(0, 0, 0, 0.85); padding: 30px; border-radius: 15px;
             box-shadow: 0 0 25px rgba(255,255,255,0.1); width: 320px; text-align: center; border: 1px solid rgba(255,255,255,0.2);
         }
-        h1 { margin-top: 0; font-size: 28px; color: #f3f3f3; }
+        h1 { margin-top: 0; font-size: 32px; color: #f3f3f3; letter-spacing: 1px; }
         input, button { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box; }
-        input { background: rgba(255,255,255,0.9); color: #222; font-weight: bold; }
-        button { background: #1b4d3e; color: #fff; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        input { background: rgba(255,255,255,0.9); color: #222; font-weight: bold; text-align: center; }
+        button { background: #1b4d3e; color: #fff; font-weight: bold; cursor: pointer; transition: 0.2s; letter-spacing: 1px; }
         button:hover { background: #277459; transform: scale(1.02); }
 
         #gameWrapper { display: none; position: relative; width: 100vw; height: 100vh; }
@@ -63,9 +63,9 @@
 
 <div id="mainMenu">
     <div class="menu-card">
-        <h1>the war of زنادقة</h1>
+        <h1>THE WAR</h1>
         <input type="text" id="playerName" placeholder="أدخل اسم المقاتل..." maxlength="12">
-        <button id="startBtn">ابدأ الزندقة 🔥</button>
+        <button id="startBtn">START</button>
     </div>
 </div>
 
@@ -76,9 +76,9 @@
     </div>
 
     <div id="scoreboard">
-        <span style="color: #3498db;">الزنادقة الزرق: <span id="blueScore">0</span></span>
+        <span style="color: #3498db;">الفريق الأزرق: <span id="blueScore">0</span></span>
         <span>🆚</span>
-        <span style="color: #e74c3c;"><span id="redScore">0</span> :الزنادقة الحمر</span>
+        <span style="color: #e74c3c;"><span id="redScore">0</span> :الفريق الأحمر</span>
     </div>
     
     <div id="logBox"></div>
@@ -132,9 +132,7 @@
 
             window.addEventListener('resize', onWindowResize);
             animate();
-        } catch (error) {
-            console.error("Three.js Init Error: ", error);
-        }
+        } catch (error) {}
     }
 
     function onWindowResize() {
@@ -194,7 +192,6 @@
         return group;
     }
 
-    // ربط الحدث برمجياً لتجنب مشكلة onclick is not defined
     document.getElementById('startBtn').addEventListener('click', function() {
         const nameInput = document.getElementById('playerName');
         const name = nameInput.value.trim() || "مقاتل_" + Math.floor(Math.random()*100);
@@ -362,4 +359,39 @@
     document.addEventListener('keydown', (e) => {
         if(document.activeElement === chatInput) return;
         if (['w', 'ArrowUp', 'KeyW'].includes(e.code) || ['w', 'ArrowUp'].includes(e.key)) movement.up = true;
-        if (['s', 'ArrowDown', 'KeyS'].includes(e.code) ||
+        if (['s', 'ArrowDown', 'KeyS'].includes(e.code) || ['s', 'ArrowDown'].includes(e.key)) movement.down = true;
+        if (['a', 'ArrowLeft', 'KeyA'].includes(e.code) || ['a', 'ArrowLeft'].includes(e.key)) movement.left = true;
+        if (['d', 'ArrowRight', 'KeyD'].includes(e.code) || ['d', 'ArrowRight'].includes(e.key)) movement.right = true;
+        socket.emit('movement', movement);
+    });
+
+    document.addEventListener('keyup', (e) => {
+        if (['w', 'ArrowUp', 'KeyW'].includes(e.code) || ['w', 'ArrowUp'].includes(e.key)) movement.up = false;
+        if (['s', 'ArrowDown', 'KeyS'].includes(e.code) || ['s', 'ArrowDown'].includes(e.key)) movement.down = false;
+        if (['a', 'ArrowLeft', 'KeyA'].includes(e.code) || ['a', 'ArrowLeft'].includes(e.key)) movement.left = false;
+        if (['d', 'ArrowRight', 'KeyD'].includes(e.code) || ['d', 'ArrowRight'].includes(e.key)) movement.right = false;
+        socket.emit('movement', movement);
+    });
+
+    window.addEventListener('click', (e) => {
+        if (!scene || !camera || e.target.tagName === 'INPUT' || e.target.closest('.touch-controls')) return;
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        
+        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+        const targetPoint = new THREE.Vector3();
+        if (raycaster.ray.intersectPlane(plane, targetPoint)) {
+            socket.emit('shoot', { targetX: targetPoint.x, targetY: targetPoint.z });
+        }
+    });
+
+    function animate() {
+        requestAnimationFrame(animate);
+        if (renderer && scene && camera) renderer.render(scene, camera);
+    }
+</script>
+</body>
+</html>
