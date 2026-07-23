@@ -3,32 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KRUNK-WAR 3D - PeerOnline</title>
+    <title>KRUNK-WAR 3D - Enhanced Edition</title>
     <style>
         * { box-sizing: border-box; touch-action: none; -webkit-touch-callout: none; user-select: none; }
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Segoe UI', Tahoma, sans-serif; }
         
         #mainMenu {
             position: absolute; width: 100%; height: 100%;
-            background: linear-gradient(135deg, #1a1a24 0%, #08080c 100%);
+            background: linear-gradient(135deg, #111425 0%, #050608 100%);
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             z-index: 10; color: #fff;
         }
         .menu-card {
-            background: rgba(25, 25, 35, 0.95); padding: 20px; border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8); width: 90%; max-width: 360px; text-align: center; border: 3px solid #f39c12;
+            background: rgba(20, 24, 38, 0.95); padding: 22px; border-radius: 14px;
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.85); width: 90%; max-width: 380px; text-align: center; border: 2px solid #f39c12;
         }
-        h1 { margin: 0 0 10px 0; font-size: 28px; color: #f1c40f; font-weight: 900; text-shadow: 2px 2px 0px #d35400; }
+        h1 { margin: 0 0 10px 0; font-size: 28px; color: #f1c40f; font-weight: 900; text-shadow: 2px 2px 4px #000; }
         label { font-size: 11px; color: #f39c12; display: block; text-align: right; margin-top: 8px; font-weight: bold; }
         input, button, select { width: 100%; padding: 10px; margin: 4px 0; border-radius: 6px; border: none; font-size: 13px; font-weight: bold; }
-        input, select { background: #2c3e50; color: #fff; text-align: center; border: 2px solid #34495e; }
+        input, select { background: #1c2733; color: #fff; text-align: center; border: 2px solid #2c3e50; }
         
         .btn-main { background: #f39c12; color: #000; cursor: pointer; border-bottom: 4px solid #d35400; margin-top: 10px; }
         .btn-sec { background: #3498db; color: #fff; cursor: pointer; border-bottom: 4px solid #2980b9; }
         .btn-join { background: #2ecc71; color: #000; cursor: pointer; border-bottom: 4px solid #27ae60; }
         button:active { border-bottom: 0px; transform: translateY(4px); }
 
-        .insta-link { display: inline-block; margin-top: 8px; color: #e1306c; text-decoration: none; font-weight: bold; font-size: 12px; }
+        .insta-link { display: inline-block; margin-top: 10px; color: #e1306c; text-decoration: none; font-weight: bold; font-size: 12px; }
 
         #shareBox { display: none; margin-top: 10px; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 8px; border: 1px dashed #f1c40f; }
         #shareBox input { font-size: 11px; background: #111; color: #2ecc71; }
@@ -43,15 +43,14 @@
         #hitmarker::before { top: 8px; left: 0; width: 18px; height: 2px; transform: rotate(45deg); }
         #hitmarker::after { top: 8px; left: 0; width: 18px; height: 2px; transform: rotate(-45deg); }
 
-        #healthUI { position: absolute; top: 10px; left: 10px; background: rgba(0, 0, 0, 0.85); padding: 8px 12px; border-radius: 8px; border: 2px solid #f1c40f; color: #fff; font-size: 11px; z-index: 4; width: 150px; }
+        #healthUI { position: absolute; top: 12px; left: 12px; background: rgba(0, 0, 0, 0.85); padding: 8px 12px; border-radius: 8px; border: 2px solid #f1c40f; color: #fff; font-size: 11px; z-index: 4; width: 150px; }
         .hp-bar-container { width: 100%; background: #333; height: 8px; border-radius: 4px; margin-top: 4px; overflow: hidden; }
         #hpBarFill { width: 100%; background: #2ecc71; height: 100%; }
         #ammoDisplay { margin-top: 4px; font-size: 11px; color: #f1c40f; display: flex; justify-content: space-between; }
-        #scoreDisplay { margin-top: 2px; font-size: 11px; color: #2ecc71; text-align: center; font-weight: 900; }
 
-        #weaponUI { position: absolute; bottom: 10px; right: 10px; background: rgba(0, 0, 0, 0.85); padding: 6px 10px; border-radius: 8px; border: 2px solid #f39c12; color: #fff; font-size: 11px; z-index: 4; text-align: center; }
+        #weaponUI { position: absolute; bottom: 12px; right: 12px; background: rgba(0, 0, 0, 0.85); padding: 6px 10px; border-radius: 8px; border: 2px solid #f39c12; color: #fff; font-size: 11px; z-index: 4; text-align: center; }
         .weapon-slots { display: flex; gap: 4px; margin-top: 4px; }
-        .slot { padding: 4px 8px; background: #34495e; border: 2px solid #2c3e50; border-radius: 4px; font-size: 10px; color: #fff; cursor: pointer; font-weight: bold; }
+        .slot { padding: 4px 8px; background: #1c2733; border: 2px solid #2c3e50; border-radius: 4px; font-size: 10px; color: #fff; cursor: pointer; font-weight: bold; }
         .slot.active { border-color: #f1c40f; background: #f39c12; color: #000; }
 
         /* Controls Phone */
@@ -61,9 +60,7 @@
         .touch-action-btns { display: flex; gap: 6px; pointer-events: auto; flex-wrap: wrap; max-width: 170px; justify-content: flex-end; }
         .action-btn { width: 44px; height: 44px; border-radius: 8px; display: flex; justify-content: center; align-items: center; color: white; font-weight: 900; font-size: 10px; border: 2px solid #000; }
         .fire-btn { background: #e74c3c; width: 52px; height: 52px; font-size: 11px; }
-        .ads-btn { background: #9b59b6; }
         .sprint-btn { background: #f1c40f; color: #000; }
-        .reload-btn { background: #e67e22; }
         .jump-btn { background: #2ecc71; }
         .crouch-btn { background: #3498db; }
     </style>
@@ -75,7 +72,7 @@
 
 <div id="mainMenu">
     <div class="menu-card">
-        <h1>KRUNK-WAR ONLINE</h1>
+        <h1>KRUNK-WAR 3D</h1>
         
         <label>اسمك في اللعبة:</label>
         <input type="text" id="playerName" placeholder="ادخل اسمك" maxlength="10" value="مقاتل">
@@ -89,7 +86,7 @@
         <button class="btn-main" onclick="joinPublicMatch()">دخول جولة عامة 🌐</button>
         <button class="btn-sec" onclick="createPrivateRoom()">إنشاء غرفة خاصة 🔒</button>
 
-        <div style="margin-top: 10px; border-top: 1px solid #444; padding-top: 8px;">
+        <div style="margin-top: 10px; border-top: 1px solid #333; padding-top: 8px;">
             <label>أو ادخل كود الغرفة مباشرة:</label>
             <input type="text" id="joinCodeInput" placeholder="مثال: A1B2C3" style="text-transform: uppercase;">
             <button class="btn-join" onclick="joinByCode()">انضمام بالكود 🚀</button>
@@ -119,11 +116,10 @@
             <span>الذخيرة:</span>
             <span id="ammoCount">30 / 150</span>
         </div>
-        <div id="scoreDisplay">النقاط: <span id="scoreVal">0</span> ⭐️</div>
     </div>
 
     <div id="weaponUI">
-        <div id="currentWeaponText">بندقية بكسل 🎯</div>
+        <div id="currentWeaponText">بندقية تكتيكية 🎯</div>
         <div class="weapon-slots">
             <div class="slot" id="slot1" onclick="selectWeapon(1)">1: خنجر</div>
             <div class="slot" id="slot2" onclick="selectWeapon(2)">2: مسدس</div>
@@ -135,10 +131,8 @@
 <div class="touch-controls" id="touchUI" style="display: none;">
     <div class="joystick-zone" id="joyZone"><div class="joystick-stick" id="joyStick"></div></div>
     <div class="touch-action-btns">
-        <div class="action-btn ads-btn" id="adsBtn">🎯 تصويب</div>
         <div class="action-btn sprint-btn" id="sprintBtn">⚡ ركض</div>
         <div class="action-btn crouch-btn" id="crouchBtn">🧎 انحناء</div>
-        <div class="action-btn reload-btn" id="reloadBtn">🔄 تعبئة</div>
         <div class="action-btn jump-btn" id="jumpBtn">🦘 قفز</div>
         <div class="action-btn fire-btn" id="fireBtn">إطلاق</div>
     </div>
@@ -151,25 +145,24 @@
     let roomCode = "";
 
     let scene, camera, renderer;
-    let myPos = { x: 1250, z: 1250 };
+    let myPos = { x: 2500, z: 2500 };
     let playerYaw = 0, playerPitch = 0;
     let selectedDevice = "pc";
     let remotePlayers = {};
     const movement = { up: false, down: false, left: false, right: false };
 
-    let isCrouching = false, isSprinting = false, isAiming = false;
-    let targetCamY = 32, currentCamY = 32, velocityY = 0, isGrounded = true, jumpCount = 0;
-    const gravity = -0.45, jumpPower = 8.5, baseSpeed = 4.2;
+    let isCrouching = false, isSprinting = false;
+    let targetCamY = 32, currentCamY = 32, velocityY = 0, isGrounded = true;
+    const gravity = -0.45, jumpPower = 8.5;
 
     let fpWeaponGroup, currentKnifeMesh, currentPistolMesh, currentRifleMesh;
-    let myScore = 0;
 
     const WEAPONS = {
-        1: { name: "سكين بكسل 🗡️", cd: 250, range: 60, damage: 100, maxAmmo: Infinity, currentAmmo: Infinity, isMelee: true },
-        2: { name: "مسدس بكسل 🔫", cd: 180, range: 900, damage: 35, maxAmmo: 12, currentAmmo: 12, reserveAmmo: 60, reloadTime: 800 },
-        3: { name: "بندقية بكسل 🎯", cd: 100, range: 1400, damage: 45, maxAmmo: 30, currentAmmo: 30, reserveAmmo: 150, reloadTime: 1100 }
+        1: { name: "خنجر تكتيكي 🗡️", cd: 250, range: 60, damage: 100, maxAmmo: Infinity, currentAmmo: Infinity, isMelee: true },
+        2: { name: "مسدس تكتيكي 🔫", cd: 180, range: 900, damage: 35, maxAmmo: 12, currentAmmo: 12, reserveAmmo: 60 },
+        3: { name: "بندقية تكتيكية 🎯", cd: 100, range: 1400, damage: 45, maxAmmo: 30, currentAmmo: 30, reserveAmmo: 150 }
     };
-    let currentWeaponId = 3, lastAttackTime = 0, isReloading = false;
+    let currentWeaponId = 3;
 
     window.onload = () => {
         const urlParams = new URLSearchParams(window.location.search);
@@ -195,7 +188,7 @@
             setupConnection();
         });
 
-        peer.on('error', (err) => {
+        peer.on('error', () => {
             document.getElementById('statusText').innerText = "خطأ في الاتصال أو الكود غير صحيح!";
         });
     }
@@ -257,22 +250,37 @@
 
     function init3D() {
         scene = new THREE.Scene();
-        scene.background = new THREE.Color('#34495e');
+        scene.background = new THREE.Color('#1e272e');
+        scene.fog = new THREE.FogExp2('#1e272e', 0.0002);
 
-        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 4000);
         camera.rotation.order = 'YXZ';
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.getElementById('gameWrapper').appendChild(renderer.domElement);
 
-        const ambLight = new THREE.AmbientLight(0xffffff, 0.9);
+        const ambLight = new THREE.AmbientLight(0xffffff, 0.7);
         scene.add(ambLight);
 
-        const floor = new THREE.Mesh(new THREE.PlaneGeometry(2500, 2500), new THREE.MeshLambertMaterial({ color: 0x2ecc71 }));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(1000, 2000, 1000);
+        scene.add(dirLight);
+
+        // إنشاء أرضية بمشاهد بصرية تكتيكية
+        const floorGeo = new THREE.PlaneGeometry(5000, 5000);
+        const floorMat = new THREE.MeshLambertMaterial({ color: 0x2c3e50 });
+        const floor = new THREE.Mesh(floorGeo, floorMat);
         floor.rotation.x = -Math.PI / 2;
-        floor.position.set(1250, 0, 1250);
+        floor.position.set(2500, 0, 2500);
         scene.add(floor);
+
+        // شبكة إرشادية على الأرضية
+        const grid = new THREE.GridHelper(5000, 100, 0xf39c12, 0x7f8c8d);
+        grid.position.set(2500, 1, 2500);
+        scene.add(grid);
+
+        buildMapObstaclesAndWalls();
 
         fpWeaponGroup = new THREE.Group();
         camera.add(fpWeaponGroup);
@@ -298,31 +306,70 @@
         animate();
     }
 
-    function buildDetailedWeapons() {
-        const darkMat = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
-        const metalMat = new THREE.MeshLambertMaterial({ color: 0x7f8c8d });
-        const woodMat = new THREE.MeshLambertMaterial({ color: 0xa0522d });
+    function buildMapObstaclesAndWalls() {
+        const wallMat = new THREE.MeshLambertMaterial({ color: 0x34495e });
+        const crateMat = new THREE.MeshLambertMaterial({ color: 0xd35400 });
+        const towerMat = new THREE.MeshLambertMaterial({ color: 0x7f8c8d });
 
+        // جدران الحدود الحامية للخريطة ($5000 \times 5000$)
+        const walls = [
+            { x: 2500, z: 0, w: 5000, h: 200, d: 40 },
+            { x: 2500, z: 5000, w: 5000, h: 200, d: 40 },
+            { x: 0, z: 2500, w: 40, h: 200, d: 5000 },
+            { x: 5000, z: 2500, w: 40, h: 200, d: 5000 }
+        ];
+
+        walls.forEach(w => {
+            const wall = new THREE.Mesh(new THREE.BoxGeometry(w.w, w.h, w.d), wallMat);
+            wall.position.set(w.x, w.h / 2, w.z);
+            scene.add(wall);
+        });
+
+        // توزيع عوائق تكتيكية (صناديق وجدران) داخل الخريطة
+        for (let i = 0; i < 60; i++) {
+            let cx = 300 + Math.random() * 4400;
+            let cz = 300 + Math.random() * 4400;
+
+            const crate = new THREE.Mesh(new THREE.BoxGeometry(30, 30, 30), crateMat);
+            crate.position.set(cx, 15, cz);
+            scene.add(crate);
+        }
+
+        // أبراج مراقبة تكتيكية مرتفعة
+        for (let i = 0; i < 8; i++) {
+            let tx = 600 + i * 550;
+            let tz = 600 + (i % 2) * 2800;
+
+            const tower = new THREE.Mesh(new THREE.CylinderGeometry(20, 25, 100, 8), towerMat);
+            tower.position.set(tx, 50, tz);
+            scene.add(tower);
+        }
+    }
+
+    function buildDetailedWeapons() {
+        const darkMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
+        const metalMat = new THREE.MeshLambertMaterial({ color: 0x95a5a6 });
+
+        // تصغير الأحجام لزيادة وضوح الشاشة (Scale Down)
         currentKnifeMesh = new THREE.Group();
-        currentKnifeMesh.add(new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.2, 4.5), metalMat));
-        currentKnifeMesh.position.set(1.2, -1.0, -2.5);
+        currentKnifeMesh.add(new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.8, 2.5), metalMat));
+        currentKnifeMesh.position.set(0.6, -0.6, -1.5);
         fpWeaponGroup.add(currentKnifeMesh);
 
         currentPistolMesh = new THREE.Group();
-        currentPistolMesh.add(new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.0, 3.5), darkMat));
-        currentPistolMesh.position.set(1.2, -1.0, -2.5);
+        currentPistolMesh.add(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.6, 2.0), darkMat));
+        currentPistolMesh.position.set(0.6, -0.6, -1.5);
         currentPistolMesh.visible = false;
         fpWeaponGroup.add(currentPistolMesh);
 
         currentRifleMesh = new THREE.Group();
-        currentRifleMesh.add(new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.2, 5.0), darkMat));
-        currentRifleMesh.position.set(1.2, -1.0, -2.5);
+        currentRifleMesh.add(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.7, 3.2), darkMat));
+        currentRifleMesh.position.set(0.6, -0.6, -1.5);
         currentRifleMesh.visible = false;
         fpWeaponGroup.add(currentRifleMesh);
     }
 
     function selectWeapon(id) {
-        if (isReloading) return;
         currentWeaponId = id;
         document.querySelectorAll('.slot').forEach((s, idx) => s.classList.toggle('active', idx + 1 === id));
         document.getElementById('currentWeaponText').innerText = WEAPONS[id].name;
@@ -341,22 +388,38 @@
 
     function updateRemotePlayer(data) {
         if (!remotePlayers[data.id]) {
-            const body = new THREE.Mesh(new THREE.BoxGeometry(8, 16, 8), new THREE.MeshLambertMaterial({ color: 0xe74c3c }));
-            scene.add(body);
-            remotePlayers[data.id] = body;
+            // تصميم مفصل لشخصية اللاعب بدل مكعب بسيط
+            const playerGroup = new THREE.Group();
+
+            const bodyMat = new THREE.MeshLambertMaterial({ color: 0xe74c3c });
+            const headMat = new THREE.MeshLambertMaterial({ color: 0xf1c40f });
+
+            const torso = new THREE.Mesh(new THREE.BoxGeometry(8, 14, 5), bodyMat);
+            torso.position.y = 12;
+
+            const head = new THREE.Mesh(new THREE.SphereGeometry(3.5, 8, 8), headMat);
+            head.position.y = 22;
+
+            playerGroup.add(torso, head);
+            scene.add(playerGroup);
+            remotePlayers[data.id] = playerGroup;
         }
-        remotePlayers[data.id].position.set(data.x, 8, data.z);
+        remotePlayers[data.id].position.set(data.x, 0, data.z);
         remotePlayers[data.id].rotation.y = data.yaw;
     }
 
     function animate() {
         requestAnimationFrame(animate);
 
-        let speed = isCrouching ? 2 : (isSprinting ? 6.5 : 4.2);
+        let speed = isCrouching ? 2.5 : (isSprinting ? 7 : 4.5);
         if (movement.up) { myPos.x -= Math.sin(playerYaw) * speed; myPos.z -= Math.cos(playerYaw) * speed; }
         if (movement.down) { myPos.x += Math.sin(playerYaw) * speed; myPos.z += Math.cos(playerYaw) * speed; }
         if (movement.left) { myPos.x -= Math.cos(playerYaw) * speed; myPos.z += Math.sin(playerYaw) * speed; }
         if (movement.right) { myPos.x += Math.cos(playerYaw) * speed; myPos.z -= Math.sin(playerYaw) * speed; }
+
+        // حدود الخريطة لمنع الخروج
+        myPos.x = Math.max(50, Math.min(4950, myPos.x));
+        myPos.z = Math.max(50, Math.min(4950, myPos.z));
 
         velocityY += gravity;
         currentCamY += velocityY;
