@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE WAR - Fixed Movement & Glowing Cyber Arena</title>
+    <title>THE WAR - Enhanced Cyber Arena</title>
     <style>
         body { margin: 0; background: #05020c; overflow: hidden; touch-action: none; font-family: 'Segoe UI', Roboto, sans-serif; user-select: none; }
         
@@ -114,7 +114,7 @@
 
     <div id="chatContainer">
         <div id="chatArea"></div>
-        <input type="text" id="chatInput" placeholder="اكتب رسالة ثم اضغط Enter..." maxlength="50">
+        <input type="text" id="chatInput" placeholder="اكتب رسالة..." maxlength="50">
     </div>
 
     <div id="weaponUI">
@@ -163,7 +163,7 @@
 
     let myPlayerName = "مقاتل";
     const movement = { up: false, down: false, left: false, right: false };
-    let myPlayerPos = { x: 1250, y: 1250 }; // موقع الرسبون الخالي من العوائق
+    let myPlayerPos = { x: 1250, y: 1250 };
     let playerYaw = 0;
     let myKills = 0, myDeaths = 0;
 
@@ -176,17 +176,15 @@
     let audioCtx;
 
     const WEAPONS = {
-        1: { name: "سكين نيون 🗡️", cd: 350 },
-        2: { name: "مسدس نيون 🔫", cd: 280 },
-        3: { name: "بندقية نيون 🎯", cd: 140 }
+        1: { name: "خنجر النيون 🗡️", cd: 350 },
+        2: { name: "مسدس تكتيكي 🔫", cd: 280 },
+        3: { name: "بندقية هجومية 🎯", cd: 140 }
     };
     let currentWeaponId = 1;
     let lastAttackTime = 0;
 
     function initAudio() {
-        if (!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
 
     function playSound(type) {
@@ -198,36 +196,33 @@
 
         if (type === 'shoot') {
             osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(380, audioCtx.currentTime);
             osc.frequency.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
             gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.15);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.15);
         } else if (type === 'knife') {
             osc.type = 'sine';
-            osc.frequency.setValueAtTime(900, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.08);
+            osc.frequency.setValueAtTime(850, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 0.08);
             gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.08);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.08);
         } else if (type === 'jump') {
             osc.type = 'triangle';
-            osc.frequency.setValueAtTime(160, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(420, audioCtx.currentTime + 0.1);
-            gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(180, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(450, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.1);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.1);
         }
     }
 
     function init3D() {
         const container = document.getElementById('gameWrapper');
         scene = new THREE.Scene();
-        scene.background = new THREE.Color('#150c2f'); 
-        scene.fog = new THREE.FogExp2('#150c2f', 0.0003);
+        scene.background = new THREE.Color('#0d0722'); 
+        scene.fog = new THREE.FogExp2('#0d0722', 0.0002);
 
         camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 6000);
 
@@ -235,23 +230,22 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         container.appendChild(renderer.domElement);
 
-        // إضاءة مشرقة ومتوازنة
-        const ambLight = new THREE.AmbientLight(0xffffff, 2.0);
+        const ambLight = new THREE.AmbientLight(0xffffff, 2.2);
         scene.add(ambLight);
-        const dirLight = new THREE.DirectionalLight(0xa29bfe, 1.5);
-        dirLight.position.set(1500, 2500, 1500);
+        const dirLight = new THREE.DirectionalLight(0x00ffff, 1.2);
+        dirLight.position.set(1000, 2000, 1000);
         scene.add(dirLight);
 
-        // أرضية الخريطة (5000x5000)
+        // خريطة مضيئة وأرضية متطورة
         const floor = new THREE.Mesh(
             new THREE.PlaneGeometry(5000, 5000),
-            new THREE.MeshStandardMaterial({ color: 0x1f143d, roughness: 0.2 })
+            new THREE.MeshStandardMaterial({ color: 0x140a2b, roughness: 0.1 })
         );
         floor.rotation.x = -Math.PI / 2;
         floor.position.set(1250, 0, 1250);
         scene.add(floor);
 
-        const gridHelper = new THREE.GridHelper(5000, 100, 0x00ffff, 0xff00ff);
+        const gridHelper = new THREE.GridHelper(5000, 100, 0x00ffff, 0x9b59b6);
         gridHelper.position.set(1250, 0.8, 1250);
         scene.add(gridHelper);
 
@@ -259,24 +253,24 @@
         camera.add(fpWeaponGroup);
         scene.add(camera);
 
-        buildDetailedGlowingWeapons();
+        buildHumanoidWeapons();
         buildStructuredMap();
         setupSocketListeners();
 
-        // التدوير على الكمبيوتر والهواتف
+        // تدوير الكاميرا
         window.addEventListener('mousemove', (e) => {
             if (document.pointerLockElement === document.body || e.buttons === 1) {
-                playerYaw -= e.movementX * 0.003;
+                playerYaw -= e.movementX * 0.0025;
             }
         });
 
         let lastTouchX = null;
         window.addEventListener('touchmove', (e) => {
             for (let t of e.changedTouches) {
-                if (t.clientX > window.innerWidth / 2) { // السحب بالنصف الأيمن للتدوير
+                if (t.clientX > window.innerWidth / 2) {
                     if (lastTouchX !== null) {
                         let deltaX = t.clientX - lastTouchX;
-                        playerYaw -= deltaX * 0.005;
+                        playerYaw -= deltaX * 0.004;
                     }
                     lastTouchX = t.clientX;
                 }
@@ -287,60 +281,105 @@
         window.addEventListener('resize', onWindowResize);
         setupTouchEvents();
         setupChatInput();
+
+        // تجربة انضمام لاعب وهمي للتأكد من الميزة
+        setTimeout(() => {
+            spawnOnlinePlayer('bot_1', 'المقاتل_سامي', 1350, 1250);
+        }, 2000);
+
         animate();
     }
 
-    // تصميم أسلحة 3D متوهجة بالنيون
-    function buildDetailedGlowingWeapons() {
-        const darkMat = new THREE.MeshStandardMaterial({ color: 0x11111a, metalness: 0.9, roughness: 0.2 });
-        const cyanGlow = new THREE.MeshStandardMaterial({ color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 0.8 });
-        const magentaGlow = new THREE.MeshStandardMaterial({ color: 0xff00ff, emissive: 0xff00ff, emissiveIntensity: 0.8 });
+    // بناء مجسم لاعب أنساني انسيابي متكامل (Humanoid 3D Character)
+    function createHumanoidPlayerMesh() {
+        const group = new THREE.Group();
+        const armorMat = new THREE.MeshStandardMaterial({ color: 0x1a1c2e, metalness: 0.8, roughness: 0.2 });
+        const glowMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+        const skinMat = new THREE.MeshStandardMaterial({ color: 0x22253a });
 
-        // 1. السكين المضيء
+        // الجذع
+        const torso = new THREE.Mesh(new THREE.CylinderGeometry(5, 4, 18, 12), armorMat);
+        torso.position.y = 19;
+        group.add(torso);
+
+        // الرأس
+        const head = new THREE.Mesh(new THREE.SphereGeometry(3.8, 16, 16), skinMat);
+        head.position.y = 31;
+        group.add(head);
+
+        // الخوذة/القناع النيون
+        const visor = new THREE.Mesh(new THREE.BoxGeometry(4.5, 1.5, 2), glowMat);
+        visor.position.set(0, 31.5, -2.2);
+        group.add(visor);
+
+        // الذراعين
+        const armGeo = new THREE.CylinderGeometry(1.5, 1.2, 14, 8);
+        const leftArm = new THREE.Mesh(armGeo, armorMat);
+        leftArm.position.set(-6.5, 20, 0);
+        group.add(leftArm);
+
+        const rightArm = new THREE.Mesh(armGeo, armorMat);
+        rightArm.position.set(6.5, 20, 0);
+        group.add(rightArm);
+
+        // الساقين
+        const legGeo = new THREE.CylinderGeometry(1.8, 1.4, 16, 8);
+        const leftLeg = new THREE.Mesh(legGeo, armorMat);
+        leftLeg.position.set(-2.5, 8, 0);
+        group.add(leftLeg);
+
+        const rightLeg = new THREE.Mesh(legGeo, armorMat);
+        rightLeg.position.set(2.5, 8, 0);
+        group.add(rightLeg);
+
+        return group;
+    }
+
+    // تصميم أسلحة ثلاثية الأبعاد احترافية
+    function buildHumanoidWeapons() {
+        const metalMat = new THREE.MeshStandardMaterial({ color: 0x11111a, metalness: 0.95, roughness: 0.1 });
+        const cyanGlow = new THREE.MeshStandardMaterial({ color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 1 });
+        const purpleGlow = new THREE.MeshStandardMaterial({ color: 0x9b59b6, emissive: 0x9b59b6, emissiveIntensity: 0.9 });
+
+        // 1. السكين
         currentKnifeMesh = new THREE.Group();
-        const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 4, 12), darkMat);
+        const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 3.5, 12), metalMat);
         handle.rotation.x = Math.PI / 2;
         currentKnifeMesh.add(handle);
-
-        const blade = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.2, 6), cyanGlow);
-        blade.position.set(0, 0.3, -4);
+        const blade = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1.4, 6), cyanGlow);
+        blade.position.set(0, 0.4, -3.8);
         currentKnifeMesh.add(blade);
         currentKnifeMesh.position.set(1.5, -1.8, -3);
         fpWeaponGroup.add(currentKnifeMesh);
 
-        // 2. المسدس المضيء
+        // 2. المسدس
         currentPistolMesh = new THREE.Group();
-        const pGrip = new THREE.Mesh(new THREE.BoxGeometry(0.8, 3, 1.2), darkMat);
+        const pGrip = new THREE.Mesh(new THREE.BoxGeometry(0.7, 2.8, 1.2), metalMat);
         pGrip.rotation.x = -0.2;
         currentPistolMesh.add(pGrip);
-
-        const pBody = new THREE.Mesh(new THREE.BoxGeometry(1, 1.2, 5), darkMat);
-        pBody.position.set(0, 1.3, -1.8);
+        const pBody = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.1, 4.5), metalMat);
+        pBody.position.set(0, 1.2, -1.6);
         currentPistolMesh.add(pBody);
-
-        const pLaser = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 4.8), magentaGlow);
-        pLaser.position.set(0, 2.0, -1.8);
+        const pLaser = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 4.5, 8), purpleGlow);
+        pLaser.rotation.x = Math.PI / 2;
+        pLaser.position.set(0, 0.5, -1.6);
         currentPistolMesh.add(pLaser);
-
         currentPistolMesh.position.set(1.8, -1.8, -3.5);
         currentPistolMesh.visible = false;
         fpWeaponGroup.add(currentPistolMesh);
 
-        // 3. البندقية المضيئة
+        // 3. البندقية الهجومية
         currentRifleMesh = new THREE.Group();
-        const rBody = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.6, 9), darkMat);
+        const rBody = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.5, 8.5), metalMat);
         rBody.position.set(0, 0, -2);
         currentRifleMesh.add(rBody);
-
-        const rBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 10, 12), cyanGlow);
+        const rBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 9, 12), cyanGlow);
         rBarrel.rotation.x = Math.PI / 2;
-        rBarrel.position.set(0, 0.4, -9);
+        rBarrel.position.set(0, 0.3, -8.5);
         currentRifleMesh.add(rBarrel);
-
-        const rScope = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.8, 2), magentaGlow);
-        rScope.position.set(0, 1.3, -2);
+        const rScope = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.8, 2.2), purpleGlow);
+        rScope.position.set(0, 1.2, -2);
         currentRifleMesh.add(rScope);
-
         currentRifleMesh.position.set(2, -2, -4);
         currentRifleMesh.visible = false;
         fpWeaponGroup.add(currentRifleMesh);
@@ -358,46 +397,24 @@
         currentRifleMesh.visible = (id === 3);
     }
 
-    // خريطة هندسية معالمها واضحة ومضيئة
     function buildStructuredMap() {
-        const pillarMat = new THREE.MeshStandardMaterial({ color: 0x2d1a4d, emissive: 0x8e44ad, emissiveIntensity: 0.3 });
-        const glowRingMat = new THREE.MeshStandardMaterial({ color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 0.9 });
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x22123d, emissive: 0x3d1266, emissiveIntensity: 0.4 });
 
-        // البرج المركزي الرئيسي
-        const mainTower = new THREE.Mesh(new THREE.CylinderGeometry(60, 80, 400, 16), pillarMat);
-        mainTower.position.set(1250, 200, 2500);
+        // البرج الرئيسي
+        const mainTower = new THREE.Mesh(new THREE.CylinderGeometry(50, 70, 300, 16), wallMat);
+        mainTower.position.set(1250, 150, 2500);
         scene.add(mainTower);
-        addObstacleBox(1250, 2500, 140, 140);
+        addObstacleBox(1250, 2500, 120, 120);
 
-        // 4 معالم دائرية مضيئة في الأركان
-        const cornerPositions = [
-            { x: -500, z: -500 }, { x: 3000, z: -500 },
-            { x: -500, z: 3000 }, { x: 3000, z: 3000 }
-        ];
+        // العوائق المنظمة (مع تفادي منطقة Spawn)
+        for (let i = -800; i <= 3300; i += 320) {
+            for (let j = -800; j <= 3300; j += 320) {
+                if (Math.hypot(i - 1250, j - 1250) < 300) continue;
 
-        cornerPositions.forEach(pos => {
-            const pillar = new THREE.Mesh(new THREE.CylinderGeometry(30, 30, 250, 16), pillarMat);
-            pillar.position.set(pos.x, 125, pos.z);
-            scene.add(pillar);
-
-            const ring = new THREE.Mesh(new THREE.TorusGeometry(35, 3, 16, 32), glowRingMat);
-            ring.rotation.x = Math.PI / 2;
-            ring.position.set(pos.x, 180, pos.z);
-            scene.add(ring);
-
-            addObstacleBox(pos.x, pos.z, 70, 70);
-        });
-
-        // حواجز تكتيكية مقسمة مع ترك مساحة الرسبون (1250, 1250) خالية بالكامل!
-        for (let i = -1000; i <= 3500; i += 300) {
-            for (let j = -1000; j <= 3500; j += 300) {
-                let distToSpawn = Math.hypot(i - 1250, j - 1250);
-                if (distToSpawn < 250) continue; // منطقة أمان خالية حول البداية
-
-                if (Math.random() > 0.65) {
-                    let w = Math.random() * 80 + 40;
-                    let h = Math.random() * 80 + 40;
-                    const box = new THREE.Mesh(new THREE.BoxGeometry(w, 50, h), pillarMat);
+                if (Math.random() > 0.6) {
+                    let w = Math.random() * 70 + 40;
+                    let h = Math.random() * 70 + 40;
+                    const box = new THREE.Mesh(new THREE.BoxGeometry(w, 50, h), wallMat);
                     box.position.set(i, 25, j);
                     scene.add(box);
                     addObstacleBox(i, j, w, h);
@@ -417,16 +434,21 @@
         return false;
     }
 
+    function spawnOnlinePlayer(id, name, x, z) {
+        if (otherPlayers[id]) return;
+        let pModel = createHumanoidPlayerMesh();
+        pModel.position.set(x, 0, z);
+        scene.add(pModel);
+        otherPlayers[id] = { mesh: pModel, name: name, kills: 0, deaths: 0 };
+        addChatMessage(`🎮 انضم المقاتل ${name} إلى الساحة!`, true);
+        updateLeaderboardUI();
+    }
+
     function setupSocketListeners() {
         if (!socket) return;
 
         socket.on('playerJoined', (data) => {
-            addChatMessage(`🎮 انضم المقاتل ${data.name} إلى الساحة!`, true);
-            let pModel = new THREE.Mesh(new THREE.BoxGeometry(10, 22, 6), new THREE.MeshStandardMaterial({ color: 0x00ffff }));
-            pModel.position.set(data.x, 11, data.y);
-            scene.add(pModel);
-            otherPlayers[data.id] = { mesh: pModel, name: data.name, kills: 0, deaths: 0 };
-            updateLeaderboardUI();
+            spawnOnlinePlayer(data.id, data.name, data.x, data.y);
         });
 
         socket.on('playerLeft', (id) => {
@@ -519,18 +541,25 @@
         document.getElementById('jumpBtn').addEventListener('touchstart', performJump);
     }
 
-    // حاسبة الحركة المستقلة والموثوقة 100%
+    // إصلاح معادلة الحركة لتكون متطابقة 100% مع اتجاه زاوية الرؤية الكاميرا
     function handleFPSMovement() {
         let speed = 5.2;
-        let dx = 0, dz = 0;
+        let moveX = 0;
+        let moveZ = 0;
 
-        if (movement.up) { dx += Math.sin(playerYaw); dz -= Math.cos(playerYaw); }
-        if (movement.down) { dx -= Math.sin(playerYaw); dz += Math.cos(playerYaw); }
-        if (movement.left) { dx -= Math.cos(playerYaw); dz -= Math.sin(playerYaw); }
-        if (movement.right) { dx += Math.cos(playerYaw); dz += Math.sin(playerYaw); }
+        // حساب اتجاهات الأمام والخلف واليمين واليسار وفقاً لزاوية الكاميرا Yaw
+        let forwardX = -Math.sin(playerYaw);
+        let forwardZ = -Math.cos(playerYaw);
+        let rightX = Math.sin(playerYaw + Math.PI / 2);
+        let rightZ = Math.cos(playerYaw + Math.PI / 2);
 
-        let nextX = myPlayerPos.x + dx * speed;
-        let nextZ = myPlayerPos.y + dz * speed;
+        if (movement.up) { moveX += forwardX; moveZ += forwardZ; }
+        if (movement.down) { moveX -= forwardX; moveZ -= forwardZ; }
+        if (movement.left) { moveX -= rightX; moveZ -= rightZ; }
+        if (movement.right) { moveX += rightX; moveZ += rightZ; }
+
+        let nextX = myPlayerPos.x + moveX * speed;
+        let nextZ = myPlayerPos.y + moveZ * speed;
 
         if (!checkCollision(nextX, myPlayerPos.y)) myPlayerPos.x = nextX;
         if (!checkCollision(myPlayerPos.x, nextZ)) myPlayerPos.y = nextZ;
@@ -572,6 +601,7 @@
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+        // العوائق
         ctx.fillStyle = '#8e44ad';
         obstacleBoxes.forEach(b => {
             let relX = ((b.minX + b.maxX)/2 - myPlayerPos.x) * scale;
@@ -579,9 +609,21 @@
             ctx.fillRect(cx + relX - 2, cy + relZ - 2, 4, 4);
         });
 
+        // رسم لاعبي الأونلاين
+        ctx.fillStyle = '#e74c3c';
+        for (let id in otherPlayers) {
+            let pPos = otherPlayers[id].mesh.position;
+            let relX = (pPos.x - myPlayerPos.x) * scale;
+            let relZ = (pPos.z - myPlayerPos.y) * scale;
+            ctx.beginPath();
+            ctx.arc(cx + relX, cy + relZ, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // موقعك
         ctx.fillStyle = '#00ffff';
         ctx.beginPath();
-        ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+        ctx.arc(cx, cy, 3.5, 0, Math.PI * 2);
         ctx.fill();
     }
 
