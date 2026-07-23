@@ -1,120 +1,213 @@
 const express = require('express');
 const http = require('http');
-const { Server } = require('socket.io');
+const socketIo = require('socket.io');
 const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = socketIo(server);
 
-// تقديم ملفات اللعبة تلقائياً من مجلد public
-app.use(express.static(path.join(__dirname, 'public')));
+// تقديم كافة الملفات الثابتة من المجلد الرئيسي مباشرة
+app.use(express.static(__dirname));
 
-// تخزين قائمة اللاعبين المتصلين في السيرفر
-const players = {};
+// توجيه الصفحة الرئيسية إلى index.html
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+let players = {};
+let bullets = [];
+let logs = [];
+let score = { blue: 0, red: 0 };
+let gameStatus = "active";
+
+const OBSTACLES = [
+    { x: 400, y: 300, w: 60, h: 60 },
+    { x: 200, y: 150, w: 50, h: 50 },
+    { x: 200, y: 450, w: 50, h: 50 },
+    { x: 600, y: 150, w: 50, h: 50 },
+    { x: 600, y: 450, w: 50, h: 50 }
+];
+
+function addLog(text) {
+    logs.push({ text, id: Date.now() });
+    if (logs.length > 5) logs.shift();
+}
+
+function checkRoundEnd() {
+    if (gameStatus !== "active") return;
+
+    let blueAlive = false;
+    let redAlive = false;
+
+    for (let id in players) {
+        if (players[id].hp > 0) {
+            if (players[id].team === "blue") blueAlive = true;
+            if (players[id].team === "red") redAlive = true;
+        }
+    }
+
+    let totalPlayers = Object.keys(players).length;
+    if (totalPlayers > 1 && (!blueAlive || !redAlive)) {
+        let roundWinner = blueAlive ? "الزرقاء" : "الحمراء";
+        let teamKey = blueAlive ? "blue" : "red";
+
+        score[teamKey]++;
+        addLog(`🏆 فاز فريق ${roundWinner} بالجولة`);
+
+        if (score[teamKey] >= 5) {
+            gameStatus = "finished";
+            addLog(`🥇 النصر النهائي لـ ${roundWinner} (5 جولات)`);
+            setTimeout(resetEntireGame, 5000);
+        } else {
+            gameStatus = "intermission";
+            setTimeout(resetRound, 3000);
+        }
+    }
+}
+
+function resetRound() {
+    for (let id in players) {
+        players[id].hp = 100;
+        players[id].x = players[id].team === "blue" ? 150 : 650;
+        players[id].y = 200 + Math.random() * 200;
+        players[id].damaged = false;
+    }
+    bullets = [];
+    gameStatus = "active";
+    addLog("⚔️ جولة جديدة بدأت في ساحة الرشاقة!");
+}
+
+function resetEntireGame() {
+    score = { blue: 0, red: 0 };
+    resetRound();
+}
+
+function checkObstacleCollision(x, y, radius) {
+    for (let obs of OBSTACLES) {
+        if (x + radius > obs.x - obs.w/2 && x - radius < obs.x + obs.w/2 &&
+            y + radius > obs.y - obs.h/2 && y - radius < obs.y + obs.h/2) {
+            return true;
+        }
+    }
+    return false;
+}
 
 io.on('connection', (socket) => {
-    console.log(`[+] لاعب جديد اتصل باللعبة: ${socket.id}`);
+    let blueCount = Object.values(players).filter(p => p.team === "blue").length;
+    let redCount = Object.values(players).filter(p => p.team === "red").length;
+    let assignedTeam = blueCount <= redCount ? "blue" : "red";
 
-    // إرسال قائمة اللاعبين الحالية للاعب المتصل حديثاً
-    socket.emit('currentPlayers', players);
+    players[socket.id] = {
+        x: assignedTeam === "blue" ? 150 : 650,
+        y: 300,
+        name: "",
+        hp: 100,
+        team: assignedTeam,
+        angle: 0,
+        isMoving: false,
+        damaged: false,
+        movement: {}
+    };
 
-    // استقبال حدث انضمام اللاعب للعبة
-    socket.on('joinGame', (playerData) => {
-        players[socket.id] = {
-            id: socket.id,
-            name: playerData.name || 'مقاتل',
-            x: playerData.x || 1250,
-            y: playerData.y || 34,
-            z: playerData.z || 1250,
-            yaw: playerData.yaw || 0,
-            health: 100,
-            kills: 0,
-            deaths: 0
-        };
-
-        // إعلام جميع اللاعبين الآخرين بوفود لاعب جديد
-        socket.broadcast.emit('playerJoined', players[socket.id]);
+    socket.on('initGame', (data) => {
+        if (players[socket.id]) {
+            players[socket.id].name = data.name || "مقاتل";
+        }
     });
 
-    // استقبال تحديث الحركة والموقع ثلاثي الأبعاد
-    socket.on('playerMove', (movementData) => {
+    socket.on('playerMove', (data) => {
         if (players[socket.id]) {
-            players[socket.id].x = movementData.x;
-            players[socket.id].y = movementData.y;
-            players[socket.id].z = movementData.z;
-            players[socket.id].yaw = movementData.yaw;
+            players[socket.id].movement = data.movement;
+            players[socket.id].angle = data.angle;
+        }
+    });
 
-            // إعادة بث الحركة المحدثة لجميع المتصلين الآخرين
-            socket.broadcast.emit('playerMoved', {
-                id: socket.id,
-                x: movementData.x,
-                y: movementData.y,
-                z: movementData.z,
-                yaw: movementData.yaw
+    socket.on('shoot', (data) => {
+        if (players[socket.id] && players[socket.id].hp > 0) {
+            bullets.push({
+                x: players[socket.id].x,
+                y: players[socket.id].y,
+                vx: Math.cos(data.angle) * 7,
+                vy: Math.sin(data.angle) * 7,
+                ownerId: socket.id,
+                team: players[socket.id].team
             });
         }
     });
 
-    // استقبال حدث إطلاق النار ومزامنة المقذوفات/الرصاص
-    socket.on('shoot', (shootData) => {
-        socket.broadcast.emit('playerShot', {
-            id: socket.id,
-            origin: shootData.origin,
-            target: shootData.target,
-            weaponId: shootData.weaponId
-        });
-    });
-
-    // استقبال حدث إلحاق الضرر بلاعب آخر
-    socket.on('playerHit', (hitData) => {
-        const targetPlayer = players[hitData.targetId];
-        if (targetPlayer) {
-            targetPlayer.health -= hitData.damage;
-            
-            if (targetPlayer.health <= 0) {
-                targetPlayer.health = 0;
-                targetPlayer.deaths += 1;
-
-                if (players[socket.id]) {
-                    players[socket.id].kills += 1;
-                }
-
-                // إرسال حدث القضاء على اللاعب للجميع
-                io.emit('playerDied', {
-                    victimId: hitData.targetId,
-                    killerId: socket.id,
-                    killerName: players[socket.id] ? players[socket.id].name : 'مجهول',
-                    victimName: targetPlayer.name
-                });
-            } else {
-                // إرسال تحديث الصحة المتبقية
-                io.emit('healthUpdate', {
-                    id: hitData.targetId,
-                    health: targetPlayer.health
-                });
-            }
-        }
-    });
-
-    // استقبال وإعادة إرسال رسائل الشات
-    socket.on('chatMessage', (data) => {
-        io.emit('chatMessage', {
-            name: data.name,
-            msg: data.msg
-        });
-    });
-
-    // عند خروج/انقطاع اتصال اللاعب
     socket.on('disconnect', () => {
-        console.log(`[-] غادر اللاعب السيرفر: ${socket.id}`);
         delete players[socket.id];
-        io.emit('playerLeft', socket.id);
+        checkRoundEnd();
     });
 });
 
-// تعيين المنفذ البرمجي للسيرفر (يدعم البيئات المحلية وخدمات الاستضافة مثل Render)
+// تحديث حركة اللاعبين والرصاص بـ 60 FPS
+setInterval(() => {
+    for (let id in players) {
+        let p = players[id];
+        if (p.hp <= 0) continue;
+
+        let oldX = p.x;
+        let oldY = p.y;
+        p.isMoving = false;
+
+        if (p.movement.up) { p.y -= 4; p.isMoving = true; }
+        if (p.movement.down) { p.y += 4; p.isMoving = true; }
+        if (p.movement.left) { p.x -= 4; p.isMoving = true; }
+        if (p.movement.right) { p.x += 4; p.isMoving = true; }
+
+        if (checkObstacleCollision(p.x, p.y, 15)) {
+            p.x = oldX;
+            p.y = oldY;
+            p.isMoving = false;
+        }
+    }
+
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        let b = bullets[i];
+        b.x += b.vx;
+        b.y += b.vy;
+
+        if (checkObstacleCollision(b.x, b.y, 5)) {
+            bullets.splice(i, 1);
+            continue;
+        }
+
+        let bulletRemoved = false;
+        for (let id in players) {
+            let p = players[id];
+            if (p.hp > 0 && p.team !== b.team) {
+                let dist = Math.hypot(b.x - p.x, b.y - p.y);
+                if (dist < 20) {
+                    p.hp -= 25;
+                    p.damaged = true;
+                    bullets.splice(i, 1);
+                    bulletRemoved = true;
+
+                    setTimeout(() => { if (players[id]) players[id].damaged = false; }, 150);
+
+                    if (p.hp <= 0) {
+                        let killer = players[b.ownerId] ? players[b.ownerId].name : "مجهول";
+                        addLog(`💀 قضى ${killer} على ${p.name}`);
+                        io.to(id).emit('playerDied');
+                        checkRoundEnd();
+                    }
+                    break;
+                }
+            }
+        }
+
+        if (bulletRemoved) continue;
+        if (b.x < 0 || b.x > 800 || b.y < 0 || b.y > 600) {
+            bullets.splice(i, 1);
+        }
+    }
+
+    io.emit('state', { players, bullets, logs, obstacles: OBSTACLES, score });
+}, 1000 / 60);
+
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`🚀 السيرفر يعمل بنجاح على المنفذ: http://localhost:${PORT}`);
+    console.log(`🚀 السيرفر يعمل على البورت ${PORT}`);
 });
