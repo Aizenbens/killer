@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE WAR - Cyber Arena with AI Bots & Bullet Effects</title>
+    <title>THE WAR 3D - Cyber Arena</title>
     <style>
         body { margin: 0; background: #05020c; overflow: hidden; touch-action: none; font-family: 'Segoe UI', Roboto, sans-serif; user-select: none; }
         
@@ -96,13 +96,13 @@
 
 <div id="mainMenu">
     <div class="menu-card">
-        <h1>THE WAR</h1>
+        <h1>THE WAR 3D</h1>
         <input type="text" id="playerName" placeholder="أدخل اسم المقاتل..." maxlength="12">
         <select id="gameModeSelect">
             <option value="bots">🤖 ضد البوتات (أوفلاين)</option>
             <option value="online">🌐 لعب أونلاين</option>
         </select>
-        <button id="startBtn">دخول الساحة</button>
+        <button id="startBtn">دخول الساحة 3D</button>
     </div>
 </div>
 
@@ -152,7 +152,7 @@
     </div>
     <div class="touch-action-btns">
         <div class="jump-btn" id="jumpBtn">🦘 قفز</div>
-        <div class="fire-btn" id="fireBtn">هجوم</div>
+        <div class="fire-btn" id="fireBtn">إطلاق</div>
     </div>
 </div>
 
@@ -263,8 +263,9 @@
         buildHumanoidWeapons();
         buildStructuredMap();
 
-        if (gameMode === "online") {
+        if (gameMode === "online" && socket) {
             setupSocketListeners();
+            socket.emit('joinGame', { name: myPlayerName, x: myPlayerPos.x, y: myPlayerPos.y });
         } else {
             spawnBots(5);
         }
@@ -428,7 +429,6 @@
         return false;
     }
 
-    // توليد 5 بوتات محترفة تشتبك مع الجميع
     function spawnBots(count) {
         const botNames = ["البوت_القاتل 🤖", "النيون_المفترس ⚡", "سبيكتر 🎯", "فانتوم ⚔️", "الصاروخ 🚀"];
         const colors = [0xe74c3c, 0xe67e22, 0xf1c40f, 0x9b59b6, 0x1abc9c];
@@ -447,8 +447,7 @@
                 x: rx, z: rz,
                 health: 100,
                 kills: 0, deaths: 0,
-                lastAttack: 0,
-                target: null
+                lastAttack: 0
             });
 
             addChatMessage(`🤖 انضم البوت ${botNames[i]} إلى المباراة!`, true);
@@ -456,19 +455,16 @@
         updateLeaderboardUI();
     }
 
-    // تحديث الذكاء الاصطناعي للبوتات
     function updateBotsAI() {
         const now = Date.now();
 
         bots.forEach(bot => {
             if (bot.health <= 0) return;
 
-            // تحديد أقرب هدف (اللاعب أو بوت آخر)
             let closestDist = 9999;
             let targetPos = null;
             let targetObj = null;
 
-            // حساب المسافة إلى اللاعب الحقيقي
             let distToPlayer = Math.hypot(myPlayerPos.x - bot.x, myPlayerPos.y - bot.z);
             if (distToPlayer < closestDist) {
                 closestDist = distToPlayer;
@@ -476,7 +472,6 @@
                 targetObj = "player";
             }
 
-            // حساب المسافة للبوتات الأخرى
             bots.forEach(otherBot => {
                 if (otherBot.id !== bot.id && otherBot.health > 0) {
                     let d = Math.hypot(otherBot.x - bot.x, otherBot.z - bot.z);
@@ -488,7 +483,6 @@
                 }
             });
 
-            // تحريك البوت باتجاه الهدف أو عشوائياً
             if (targetPos && closestDist < 800) {
                 let dx = targetPos.x - bot.x;
                 let dz = targetPos.z - bot.z;
@@ -504,7 +498,6 @@
                 bot.mesh.position.set(bot.x, 0, bot.z);
                 bot.mesh.rotation.y = angle;
 
-                // إطلاق النار على الهدف عند الاقتراب
                 if (closestDist < 450 && now - bot.lastAttack > 450) {
                     bot.lastAttack = now;
                     let origin = new THREE.Vector3(bot.x, 22, bot.z);
@@ -513,7 +506,6 @@
                     createBulletTracer(origin, targetVec, 0xff0055);
                     playSound('shoot');
 
-                    // إلحاق الضرر
                     if (targetObj === "player") {
                         takeDamage(12, bot.name);
                     } else if (targetObj && targetObj.health) {
@@ -535,9 +527,7 @@
         });
     }
 
-    // إنشاء شعب الرصاصة والطلقة البصرية Muzzle Flash & Laser Tracer
     function createBulletTracer(startPos, endPos, colorHex = 0x00ffff) {
-        // 1. وميض الطلقة عند الفوهة (Muzzle Flash)
         const flashGeo = new THREE.SphereGeometry(1.2, 8, 8);
         const flashMat = new THREE.MeshBasicMaterial({ color: colorHex });
         const flashMesh = new THREE.Mesh(flashGeo, flashMat);
@@ -545,7 +535,6 @@
         scene.add(flashMesh);
         setTimeout(() => scene.remove(flashMesh), 40);
 
-        // 2. شعاع الليزر/مسار الرصاصة المتوهج
         const distance = startPos.distanceTo(endPos);
         const cylinderGeo = new THREE.CylinderGeometry(0.2, 0.2, distance, 6);
         const cylinderMat = new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity: 0.9 });
@@ -557,9 +546,7 @@
         scene.add(tracer);
         setTimeout(() => scene.remove(tracer), 80);
 
-        // 3. تأثير شرارات الاصطدام Hit Sparks
-        const sparkCount = 5;
-        for(let i = 0; i < sparkCount; i++) {
+        for(let i = 0; i < 5; i++) {
             const spark = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), new THREE.MeshBasicMaterial({ color: colorHex }));
             spark.position.copy(endPos);
             scene.add(spark);
@@ -587,6 +574,18 @@
     function setupSocketListeners() {
         if (!socket) return;
 
+        socket.on('currentPlayers', (players) => {
+            for (let id in players) {
+                if (id !== socket.id && !otherPlayers[id]) {
+                    let pModel = createHumanoidPlayerMesh();
+                    pModel.position.set(players[id].x, 0, players[id].y);
+                    scene.add(pModel);
+                    otherPlayers[id] = { mesh: pModel, name: players[id].name, kills: 0, deaths: 0 };
+                }
+            }
+            updateLeaderboardUI();
+        });
+
         socket.on('playerJoined', (data) => {
             let pModel = createHumanoidPlayerMesh();
             pModel.position.set(data.x, 0, data.y);
@@ -594,6 +593,20 @@
             otherPlayers[data.id] = { mesh: pModel, name: data.name, kills: 0, deaths: 0 };
             addChatMessage(`🎮 انضم المقاتل ${data.name} إلى الساحة!`, true);
             updateLeaderboardUI();
+        });
+
+        socket.on('playerMoved', (data) => {
+            if (otherPlayers[data.id]) {
+                otherPlayers[data.id].mesh.position.set(data.x, 0, data.y);
+                otherPlayers[data.id].mesh.rotation.y = data.yaw;
+            }
+        });
+
+        socket.on('playerShot', (data) => {
+            let start = new THREE.Vector3(data.origin.x, data.origin.y, data.origin.z);
+            let target = new THREE.Vector3(data.target.x, data.target.y, data.target.z);
+            createBulletTracer(start, target, 0xff0055);
+            playSound('shoot');
         });
 
         socket.on('playerLeft', (id) => {
@@ -722,6 +735,10 @@
 
         camera.position.set(myPlayerPos.x, playerY, myPlayerPos.y);
         camera.rotation.y = playerYaw;
+
+        if (socket && gameMode === "online" && (moveX !== 0 || moveZ !== 0)) {
+            socket.emit('playerMove', { x: myPlayerPos.x, y: myPlayerPos.y, z: playerY, yaw: playerYaw });
+        }
     }
 
     function performAttack() {
@@ -735,7 +752,6 @@
         } else {
             playSound('shoot');
 
-            // حساب نقطة البداية والنهاية للرصاصة
             let weaponPos = new THREE.Vector3();
             camera.getWorldPosition(weaponPos);
             weaponPos.y -= 3;
@@ -745,7 +761,10 @@
 
             createBulletTracer(weaponPos, targetPoint, 0x00ffff);
 
-            // فحص إطلاق النار على البوتات
+            if (socket && gameMode === "online") {
+                socket.emit('shoot', { origin: weaponPos, target: targetPoint, weaponId: currentWeaponId });
+            }
+
             bots.forEach(bot => {
                 if (bot.health <= 0) return;
                 let bDist = Math.hypot(bot.x - myPlayerPos.x, bot.z - myPlayerPos.y);
@@ -793,7 +812,6 @@
             ctx.fillRect(cx + relX - 2, cy + relZ - 2, 4, 4);
         });
 
-        // رسم البوتات
         ctx.fillStyle = '#ff0055';
         bots.forEach(b => {
             if (b.health > 0) {
@@ -805,7 +823,6 @@
             }
         });
 
-        // موقعك
         ctx.fillStyle = '#00ffff';
         ctx.beginPath();
         ctx.arc(cx, cy, 3.5, 0, Math.PI * 2);
