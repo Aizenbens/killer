@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE WAR</title>
+    <title>THE WAR - FPS Edition</title>
     <style>
         body { margin: 0; background: #05020c; overflow: hidden; touch-action: none; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; user-select: none; }
         
@@ -52,6 +52,15 @@
         .hp-bar-container { width: 100%; background: #111; height: 12px; border-radius: 6px; margin-top: 6px; overflow: hidden; border: 1px solid #333; }
         #hpBarFill { width: 100%; background: #3498db; height: 100%; transition: width 0.2s ease-out; box-shadow: 0 0 10px #3498db; }
 
+        /* نقطة التصويب في منتصف الشاشة لمنظور الشخص الأول */
+        #crosshair {
+            position: absolute; top: 50%; left: 50%; width: 10px; height: 10px;
+            transform: translate(-50%, -50%); pointer-events: none; z-index: 6;
+        }
+        #crosshair::before, #crosshair::after { content: ''; position: absolute; background: #00ffff; box-shadow: 0 0 8px #00ffff; }
+        #crosshair::before { top: 4px; left: -8px; width: 26px; height: 2px; }
+        #crosshair::after { top: -8px; left: 4px; width: 2px; height: 26px; }
+
         #logBox { position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,0.8); color: #3498db; padding: 10px; border-radius: 8px; font-size: 11px; max-width: 190px; pointer-events: none; direction: rtl; z-index: 4; border-right: 4px solid #9b59b6; box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
         
         #chatContainer {
@@ -82,6 +91,8 @@
 </div>
 
 <div id="gameWrapper">
+    <div id="crosshair"></div>
+
     <div id="healthUI">
         <div>صحة المقاتل (HP)</div>
         <div class="hp-bar-container"><div id="hpBarFill"></div></div>
@@ -110,76 +121,112 @@
 </div>
 
 <script>
-    // فحص ذكي للتأكد من وجود السيرفر لتجنب انهيار الكود وتأمين الدخول الفوري للعبة
     let socket;
-    try {
-        socket = io();
-    } catch(e) {
-        socket = { emit: function(){}, on: function(){} };
-    }
+    try { socket = io(); } catch(e) { socket = { emit: function(){}, on: function(){} }; }
 
     let scene, camera, renderer;
     let playerGroups = {}; 
     let bulletMeshes = [];
     let obstacleMeshes = [];
+    let fpGunGroup; // سلاح منظور الشخص الأول
     let myTeam = "blue";
     const movement = { up: false, down: false, left: false, right: false };
     let myPlayerPos = { x: 400, y: 300 };
+    let playerYaw = 0; // زاوية دوران النظر بالماوس
 
     function init3D() {
         try {
             const container = document.getElementById('gameWrapper');
             scene = new THREE.Scene();
-            scene.background = new THREE.Color('#0a0418'); 
-            scene.fog = new THREE.FogExp2('#0a0418', 0.001); // تقليل الضباب لزيادة وضوح الرؤية
+            scene.background = new THREE.Color('#0c061a'); 
+            scene.fog = new THREE.FogExp2('#0c061a', 0.0008);
 
-            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 2000);
-            camera.position.set(400, 320, 520);
+            // كاميرا منظور الشخص الأول
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2500);
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            renderer.toneMappingExposure = 1.5; // رفع التعريض الضوئي الإجمالي للعبة
+            renderer.toneMappingExposure = 1.6;
             container.appendChild(renderer.domElement);
 
-            // تعديل: رفع مستوى الإضاءة العامة (AmbientLight) لتصبح الخريطة مضيئة جداً وواضحة
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
+            // إضاءة الخريطة بأسلوب نيوني مبهر ومستقبلية
+            const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
             scene.add(ambientLight);
             
-            // إضافة ضوء اتجاهي قوي يحاكي ضوء الشمس/القمر النيوني اللامع
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            dirLight.position.set(400, 600, 300);
+            const dirLight = new THREE.DirectionalLight(0xa29bfe, 0.9);
+            dirLight.position.set(400, 700, 300);
             scene.add(dirLight);
 
-            const floorGeo = new THREE.PlaneGeometry(1200, 900);
-            const floorMat = new THREE.MeshStandardMaterial({ color: 0x140d2b, roughness: 0.4, metalness: 0.4 });
+            // أرضية الخريطة المحدثة
+            const floorGeo = new THREE.PlaneGeometry(1600, 1200);
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0x120a24, roughness: 0.3, metalness: 0.6 });
             const floor = new THREE.Mesh(floorGeo, floorMat);
             floor.rotation.x = -Math.PI / 2;
             floor.position.set(400, 0, 300);
             scene.add(floor);
 
-            const gridHelper = new THREE.GridHelper(1500, 60, 0x9b59b6, 0x3d1b6e);
+            const gridHelper = new THREE.GridHelper(1800, 70, 0x00ffff, 0x8e44ad);
             gridHelper.position.set(400, 0.6, 300);
             scene.add(gridHelper);
 
-            // إنشاء لاعب افتراضي فوراً حتى لو لم يستجب السيرفر لضمان دخول اللعبة وظهور الشخصية
+            // بناء مجسم سلاح منظور الشخص الأول الملحق بالكاميرا مباشرة
+            createFirstPersonGun();
+
+            // إنشاء الخريطة واللاعب الأوفلاين
             createLocalPlayerOffline();
+
+            // تحريك الرؤية وتصويب الشخص الأول بالماوس
+            window.addEventListener('mousemove', (e) => {
+                if (document.pointerLockElement === document.body || e.buttons === 1) {
+                    playerYaw -= e.movementX * 0.003;
+                }
+            });
 
             window.addEventListener('resize', onWindowResize);
             animate();
         } catch (error) {}
     }
 
+    function createFirstPersonGun() {
+        fpGunGroup = new THREE.Group();
+        
+        const matGun = new THREE.MeshStandardMaterial({ color: 0x1f192b, metalness: 0.8, roughness: 0.2 });
+        const matGlow = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+
+        const body = new THREE.Mesh(new THREE.BoxGeometry(2, 2.5, 12), matGun);
+        body.position.set(0, 0, 0);
+        fpGunGroup.add(body);
+
+        const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 10, 16), matGun);
+        barrel.rotation.x = Math.PI / 2;
+        barrel.position.set(0, 0.5, -9);
+        fpGunGroup.add(barrel);
+
+        const sight = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.8, 0.8), matGlow);
+        sight.position.set(0, 1.6, -3);
+        fpGunGroup.add(sight);
+
+        fpGunGroup.position.set(2.2, -2.2, -4);
+        camera.add(fpGunGroup);
+        scene.add(camera);
+    }
+
     function createLocalPlayerOffline() {
-        // توليد عوائق افتراضية مضيئة محلياً في حال عدم الاتصال بسيرفر
+        // زيادة الخرائط والعوائق المتنوعة للتغطية الاحترافية
         const offlineObstacles = [
-            {x: 250, y: 200, w: 100, h: 40},
-            {x: 550, y: 400, w: 120, h: 40},
-            {x: 400, y: 150, w: 40, h: 100}
+            {x: 200, y: 150, w: 120, h: 40},
+            {x: 600, y: 150, w: 120, h: 40},
+            {x: 200, y: 450, w: 120, h: 40},
+            {x: 600, y: 450, w: 120, h: 40},
+            {x: 400, y: 300, w: 80, h: 80},
+            {x: 400, y: 100, w: 50, h: 120},
+            {x: 400, y: 500, w: 50, h: 120},
+            {x: 100, y: 300, w: 40, h: 140},
+            {x: 700, y: 300, w: 40, h: 140}
         ];
         buildObstacles(offlineObstacles);
 
-        // إنشاء مجسم اللاعب محلياً
         const localId = "local_player";
         if (!playerGroups[localId]) {
             playerGroups[localId] = createStickMan(0x3498db);
@@ -200,73 +247,48 @@
         
         group.userData = {
             baseColor: teamColor,
-            normalMaterial: new THREE.MeshStandardMaterial({ color: teamColor, roughness: 0.2, metalness: 0.5 }),
-            damageMaterial: new THREE.MeshBasicMaterial({ color: 0xffffff }),
-            armorMaterial: new THREE.MeshStandardMaterial({ color: 0x221a36, roughness: 0.3, metalness: 0.7 }),
-            visorMaterial: new THREE.MeshBasicMaterial({ color: teamColor === 0x3498db ? 0x00ffff : 0xff3366 })
+            normalMaterial: new THREE.MeshStandardMaterial({ color: teamColor, roughness: 0.2, metalness: 0.6 }),
+            armorMaterial: new THREE.MeshStandardMaterial({ color: 0x241a3d, roughness: 0.3, metalness: 0.8 }),
+            visorMaterial: new THREE.MeshBasicMaterial({ color: teamColor === 0x3498db ? 0x00ffff : 0xff2255 })
         };
 
         const mat = group.userData.normalMaterial;
         const armorMat = group.userData.armorMaterial;
 
-        const headGeo = new THREE.CylinderGeometry(5.5, 5.5, 9, 16);
+        // خوذة القتال المعتمدة للأعداء واللاعبين
+        const headGeo = new THREE.CylinderGeometry(6, 6, 10, 16);
         const head = new THREE.Mesh(headGeo, armorMat);
         head.position.y = 35;
         group.add(head);
 
-        const visorGeo = new THREE.BoxGeometry(9.5, 2, 2.5);
+        const visorGeo = new THREE.BoxGeometry(10, 2.5, 3);
         const visor = new THREE.Mesh(visorGeo, group.userData.visorMaterial);
-        visor.position.set(0, 36, 4.2);
+        visor.position.set(0, 36, 4.5);
         group.add(visor);
 
-        const jetpackGeo = new THREE.BoxGeometry(9, 14, 4.5);
-        const jetpack = new THREE.Mesh(jetpackGeo, mat);
-        jetpack.position.set(0, 23, -4.5);
-        group.add(jetpack);
-
-        const bodyGeo = new THREE.CylinderGeometry(3.5, 2.5, 17, 16);
+        const bodyGeo = new THREE.CylinderGeometry(4, 3, 18, 16);
         const body = new THREE.Mesh(bodyGeo, mat);
         body.position.y = 22;
         group.add(body);
 
-        const armorVestGeo = new THREE.CylinderGeometry(4, 3.2, 12, 16);
+        const armorVestGeo = new THREE.CylinderGeometry(4.5, 3.8, 13, 16);
         const armorVest = new THREE.Mesh(armorVestGeo, armorMat);
         armorVest.position.y = 24;
         group.add(armorVest);
 
-        const legGeo = new THREE.CylinderGeometry(1.6, 1.2, 14, 12);
+        const legGeo = new THREE.CylinderGeometry(1.8, 1.3, 15, 12);
         
         const leftLeg = new THREE.Mesh(legGeo, armorMat);
-        leftLeg.geometry.translate(0, -7, 0); 
-        leftLeg.position.set(-3.2, 14, 0);
+        leftLeg.geometry.translate(0, -7.5, 0); 
+        leftLeg.position.set(-3.5, 15, 0);
         group.add(leftLeg);
         group.userData.leftLeg = leftLeg;
 
         const rightLeg = new THREE.Mesh(legGeo, armorMat);
-        rightLeg.geometry.translate(0, -7, 0); 
-        rightLeg.position.set(3.2, 14, 0);
+        rightLeg.geometry.translate(0, -7.5, 0); 
+        rightLeg.position.set(3.5, 15, 0);
         group.add(rightLeg);
         group.userData.rightLeg = rightLeg;
-
-        const armGeo = new THREE.CylinderGeometry(1.2, 1.0, 12, 12);
-        const leftArm = new THREE.Mesh(armGeo, mat);
-        leftArm.position.set(-6, 24, 2);
-        leftArm.rotation.x = Math.PI / 3;
-        group.add(leftArm);
-
-        const gunGroup = new THREE.Group();
-        const barrel1 = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 24, 12), armorMat);
-        barrel1.position.y = 0.8;
-        barrel1.rotation.z = Math.PI / 2;
-        gunGroup.add(barrel1);
-
-        const barrel2 = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 24, 12), armorMat);
-        barrel2.position.y = -0.8;
-        barrel2.rotation.z = Math.PI / 2;
-        gunGroup.add(barrel2);
-
-        gunGroup.position.set(11, 23, 5);
-        group.add(gunGroup);
 
         return group;
     }
@@ -275,22 +297,22 @@
         if (obstacleMeshes.length > 0) return;
         obstaclesList.forEach((obs, index) => {
             const obsGroup = new THREE.Group();
-            const geo = new THREE.BoxGeometry(obs.w, 38, obs.h);
-            const mat = new THREE.MeshStandardMaterial({ color: 0x22173b, roughness: 0.3, metalness: 0.8 }); 
+            const geo = new THREE.BoxGeometry(obs.w, 48, obs.h);
+            const mat = new THREE.MeshStandardMaterial({ color: 0x281a4a, roughness: 0.3, metalness: 0.8 }); 
             const box = new THREE.Mesh(geo, mat);
-            box.position.y = 19;
+            box.position.y = 24;
             obsGroup.add(box);
 
-            const neonGeo = new THREE.BoxGeometry(obs.w + 1.5, 2.5, obs.h + 1.5);
-            const lightColor = index % 2 === 0 ? 0x00ffff : 0xd146ff; 
+            const neonGeo = new THREE.BoxGeometry(obs.w + 2, 3, obs.h + 2);
+            const lightColor = index % 2 === 0 ? 0x00ffff : 0xbf55ff; 
             const neonMat = new THREE.MeshBasicMaterial({ color: lightColor });
             const neon = new THREE.Mesh(neonGeo, neonMat);
-            neon.position.y = 38;
+            neon.position.y = 48;
             obsGroup.add(neon);
 
-            // تعديل: رفع قوة ونطاق إضاءة الكشافات لملء الخريطة بنور ساطع
-            const pointLight = new THREE.PointLight(lightColor, 5.0, 400);
-            pointLight.position.set(0, 45, 0);
+            // أضواء نيون فائقة السطوع تضيء أرجاء الساحة
+            const pointLight = new THREE.PointLight(lightColor, 6.0, 350);
+            pointLight.position.set(0, 55, 0);
             obsGroup.add(pointLight);
 
             obsGroup.position.set(obs.x, 0, obs.y);
@@ -303,12 +325,15 @@
         const nameInput = document.getElementById('playerName');
         const name = nameInput.value.trim() || "مقاتل_" + Math.floor(Math.random()*100);
         
-        // الدخول الفوري والمباشر للشاشة دون انتظار رد السيرفر لمنع أي تعليق
         document.getElementById('mainMenu').style.display = 'none';
         document.getElementById('gameWrapper').style.display = 'block';
         
         if(window.innerWidth < 1024 || 'ontouchstart' in window) {
             document.getElementById('touchUI').style.display = 'flex';
+        } else {
+            // تفعيل قفل الماوس للتحكم بالسلاح وسلاسة الـ FPS على أجهزة الكمبيوتر
+            document.body.requestPointerLock = document.body.requestPointerLock || document.body.mozRequestPointerLock;
+            document.body.requestPointerLock();
         }
 
         init3D();
@@ -320,7 +345,6 @@
     socket.on('state', (state) => {
         if (!scene) return;
 
-        // إزالة اللاعب الافتراضي الأوفلاين بمجرد بدء السيرفر في إرسال البيانات الحقيقية
         if(playerGroups["local_player"]) {
             scene.remove(playerGroups["local_player"]);
             delete playerGroups["local_player"];
@@ -355,6 +379,11 @@
                 myPlayerPos.y = p.y;
                 const fill = document.getElementById('hpBarFill');
                 if(fill) fill.style.width = p.hp + '%';
+
+                // ضبط وضع كاميرا الشخص الأول بالضبط في مستوى عين لاعبك
+                camera.position.set(p.x, 34, p.y);
+                camera.rotation.y = playerYaw;
+                continue; // إخفاء مجسم لاعبك الخاص لتجنب إعاقة منظور الشخص الأول
             }
 
             if (!playerGroups[id]) {
@@ -375,9 +404,9 @@
             pg.rotation.y = -p.angle;
 
             if (p.isMoving) {
-                let time = Date.now() * 0.015;
-                pg.userData.leftLeg.rotation.x = Math.sin(time) * 0.7;
-                pg.userData.rightLeg.rotation.x = -Math.sin(time) * 0.7;
+                let time = Date.now() * 0.018;
+                pg.userData.leftLeg.rotation.x = Math.sin(time) * 0.8;
+                pg.userData.rightLeg.rotation.x = -Math.sin(time) * 0.8;
             } else {
                 pg.userData.leftLeg.rotation.x = 0;
                 pg.userData.rightLeg.rotation.x = 0;
@@ -390,39 +419,47 @@
                 label.style.left = ((wp.x * .5 + .5) * window.innerWidth) + 'px';
                 label.style.top = ((-(wp.y * .5) + .5) * window.innerHeight) + 'px';
             }
-
-            if (id === socket.id && camera) {
-                camera.position.set(p.x, 320, p.y + 260);
-                camera.lookAt(p.x, 15, p.y);
-            }
         }
 
         bulletMeshes.forEach(mesh => scene.remove(mesh));
         bulletMeshes = [];
 
         state.bullets.forEach(b => {
-            const geometry = new THREE.SphereGeometry(3.8, 16, 16);
-            const color = b.team === "blue" ? 0x00ffff : 0xff3838;
+            const geometry = new THREE.SphereGeometry(4, 16, 16);
+            const color = b.team === "blue" ? 0x00ffff : 0xff2255;
             const mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: color }));
-            mesh.position.set(b.x, 23, b.y); 
+            mesh.position.set(b.x, 30, b.y); 
             scene.add(mesh);
             bulletMeshes.push(mesh);
         });
     });
 
-    // تحكم محلي احتياطي للاعب الافتراضي للتحرك في حال عدم وجود سيرفر
-    function handleLocalMovementOffline() {
-        if(!playerGroups["local_player"]) return;
-        let speed = 2.5;
-        let localPlayer = playerGroups["local_player"];
-        if(movement.up) localPlayer.position.z -= speed;
-        if(movement.down) localPlayer.position.z += speed;
-        if(movement.left) localPlayer.position.x -= speed;
-        if(movement.right) localPlayer.position.x += speed;
-        
-        // جعل الكاميرا تتبع اللاعب المحلي الأوفلاين أيضاً
-        camera.position.set(localPlayer.position.x, 320, localPlayer.position.z + 260);
-        camera.lookAt(localPlayer.position.x, 15, localPlayer.position.z);
+    // معالجة سلسة لحركة الشخص الأول أوفلاين/أونلاين
+    function handleFPSMovement() {
+        let speed = 3.2;
+        let dx = 0, dz = 0;
+
+        if (movement.up) { dx += Math.sin(playerYaw); dz -= Math.cos(playerYaw); }
+        if (movement.down) { dx -= Math.sin(playerYaw); dz += Math.cos(playerYaw); }
+        if (movement.left) { dx -= Math.cos(playerYaw); dz -= Math.sin(playerYaw); }
+        if (movement.right) { dx += Math.cos(playerYaw); dz += Math.sin(playerYaw); }
+
+        if (dx !== 0 || dz !== 0) {
+            myPlayerPos.x += dx * speed;
+            myPlayerPos.y += dz * speed;
+
+            // التأثر باهتزاز وتأرجح السلاح السلس عند المشي (Weapon Sway)
+            if (fpGunGroup) {
+                let time = Date.now() * 0.01;
+                fpGunGroup.position.y = -2.2 + Math.sin(time * 2) * 0.15;
+                fpGunGroup.position.x = 2.2 + Math.cos(time) * 0.1;
+            }
+        }
+
+        if (playerGroups["local_player"]) {
+            camera.position.set(myPlayerPos.x, 34, myPlayerPos.y);
+            camera.rotation.y = playerYaw;
+        }
     }
 
     const joyZone = document.getElementById('joyZone');
@@ -453,10 +490,7 @@
 
     document.getElementById('fireBtn').addEventListener('touchstart', (e) => {
         e.preventDefault();
-        let activePlayer = playerGroups[socket.id] || playerGroups["local_player"];
-        if (!activePlayer) return; 
-        let angle = activePlayer.rotation.y;
-        socket.emit('shoot', { targetX: myPlayerPos.x + Math.sin(angle)*120, targetY: myPlayerPos.y - Math.cos(angle)*120 });
+        fireGunFPS();
     });
 
     document.addEventListener('keydown', (e) => {
@@ -475,25 +509,28 @@
         socket.emit('movement', movement);
     });
 
-    window.addEventListener('click', (e) => {
-        if (!scene || !camera || e.target.tagName === 'INPUT' || e.target.closest('#chatContainer') || e.target.closest('.touch-controls')) return;
+    function fireGunFPS() {
+        if (!scene || !camera) return;
         
-        const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2();
-        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-        raycaster.setFromCamera(mouse, camera);
-        
-        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-        const targetPoint = new THREE.Vector3();
-        if (raycaster.ray.intersectPlane(plane, targetPoint)) {
-            socket.emit('shoot', { targetX: targetPoint.x, targetY: targetPoint.z });
+        // تأثير ارتداد السلاح (Recoil Effect)
+        if (fpGunGroup) {
+            fpGunGroup.position.z += 0.8;
+            setTimeout(() => { fpGunGroup.position.z = -4; }, 80);
         }
+
+        let targetX = myPlayerPos.x + Math.sin(playerYaw) * 300;
+        let targetY = myPlayerPos.y - Math.cos(playerYaw) * 300;
+        socket.emit('shoot', { targetX: targetX, targetY: targetY });
+    }
+
+    window.addEventListener('click', (e) => {
+        if (!scene || e.target.tagName === 'INPUT' || e.target.closest('#chatContainer') || e.target.closest('.touch-controls')) return;
+        fireGunFPS();
     });
 
     function animate() {
         requestAnimationFrame(animate);
-        handleLocalMovementOffline(); // تشغيل تحريك أوفلاين في حال غياب السيرفر
+        handleFPSMovement();
         if (renderer && scene && camera) renderer.render(scene, camera);
     }
 </script>
