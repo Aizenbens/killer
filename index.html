@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE WAR - Enhanced Cyber Arena</title>
+    <title>THE WAR - Cyber Arena with AI Bots & Bullet Effects</title>
     <style>
         body { margin: 0; background: #05020c; overflow: hidden; touch-action: none; font-family: 'Segoe UI', Roboto, sans-serif; user-select: none; }
         
@@ -14,13 +14,14 @@
             z-index: 10; color: #fff;
         }
         .menu-card {
-            background: rgba(12, 5, 26, 0.85); padding: 40px 30px; border-radius: 24px;
-            box-shadow: 0 0 40px rgba(155, 89, 182, 0.3); width: 320px; text-align: center; border: 2px solid #8e44ad;
+            background: rgba(12, 5, 26, 0.85); padding: 35px 30px; border-radius: 24px;
+            box-shadow: 0 0 40px rgba(155, 89, 182, 0.3); width: 340px; text-align: center; border: 2px solid #8e44ad;
             backdrop-filter: blur(12px);
         }
-        h1 { margin: 0 0 20px 0; font-size: 40px; color: #00ffff; font-weight: 900; text-shadow: 0 0 10px #00ffff; }
-        input, button { width: 100%; padding: 14px; margin: 10px 0; border-radius: 12px; border: none; font-size: 15px; box-sizing: border-box; }
-        input { background: rgba(15, 8, 30, 0.8); color: #fff; text-align: center; border: 2px solid #2c1a4d; }
+        h1 { margin: 0 0 15px 0; font-size: 38px; color: #00ffff; font-weight: 900; text-shadow: 0 0 10px #00ffff; }
+        input, button, select { width: 100%; padding: 13px; margin: 8px 0; border-radius: 12px; border: none; font-size: 14px; box-sizing: border-box; }
+        input, select { background: rgba(15, 8, 30, 0.8); color: #fff; text-align: center; border: 2px solid #2c1a4d; }
+        select { text-align-last: center; cursor: pointer; }
         button { background: linear-gradient(90deg, #9b59b6, #00ffff); color: #000; font-weight: 900; cursor: pointer; }
 
         #gameWrapper { display: none; position: relative; width: 100vw; height: 100vh; }
@@ -97,6 +98,10 @@
     <div class="menu-card">
         <h1>THE WAR</h1>
         <input type="text" id="playerName" placeholder="أدخل اسم المقاتل..." maxlength="12">
+        <select id="gameModeSelect">
+            <option value="bots">🤖 ضد البوتات (أوفلاين)</option>
+            <option value="online">🌐 لعب أونلاين</option>
+        </select>
         <button id="startBtn">دخول الساحة</button>
     </div>
 </div>
@@ -158,10 +163,13 @@
     let scene, camera, renderer;
     let obstacleBoxes = [];
     let otherPlayers = {};
+    let bots = [];
     let fpWeaponGroup;
     let currentKnifeMesh, currentPistolMesh, currentRifleMesh;
 
+    let gameMode = "bots";
     let myPlayerName = "مقاتل";
+    let myHealth = 100;
     const movement = { up: false, down: false, left: false, right: false };
     let myPlayerPos = { x: 1250, y: 1250 };
     let playerYaw = 0;
@@ -176,9 +184,9 @@
     let audioCtx;
 
     const WEAPONS = {
-        1: { name: "خنجر النيون 🗡️", cd: 350 },
-        2: { name: "مسدس تكتيكي 🔫", cd: 280 },
-        3: { name: "بندقية هجومية 🎯", cd: 140 }
+        1: { name: "خنجر النيون 🗡️", cd: 350, range: 45, damage: 35 },
+        2: { name: "مسدس تكتيكي 🔫", cd: 280, range: 600, damage: 20 },
+        3: { name: "بندقية هجومية 🎯", cd: 140, range: 1200, damage: 15 }
     };
     let currentWeaponId = 1;
     let lastAttackTime = 0;
@@ -196,9 +204,9 @@
 
         if (type === 'shoot') {
             osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(380, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(450, audioCtx.currentTime);
             osc.frequency.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
-            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
             osc.start(); osc.stop(audioCtx.currentTime + 0.15);
         } else if (type === 'knife') {
@@ -236,7 +244,6 @@
         dirLight.position.set(1000, 2000, 1000);
         scene.add(dirLight);
 
-        // خريطة مضيئة وأرضية متطورة
         const floor = new THREE.Mesh(
             new THREE.PlaneGeometry(5000, 5000),
             new THREE.MeshStandardMaterial({ color: 0x140a2b, roughness: 0.1 })
@@ -255,9 +262,13 @@
 
         buildHumanoidWeapons();
         buildStructuredMap();
-        setupSocketListeners();
 
-        // تدوير الكاميرا
+        if (gameMode === "online") {
+            setupSocketListeners();
+        } else {
+            spawnBots(5);
+        }
+
         window.addEventListener('mousemove', (e) => {
             if (document.pointerLockElement === document.body || e.buttons === 1) {
                 playerYaw -= e.movementX * 0.0025;
@@ -282,37 +293,27 @@
         setupTouchEvents();
         setupChatInput();
 
-        // تجربة انضمام لاعب وهمي للتأكد من الميزة
-        setTimeout(() => {
-            spawnOnlinePlayer('bot_1', 'المقاتل_سامي', 1350, 1250);
-        }, 2000);
-
         animate();
     }
 
-    // بناء مجسم لاعب أنساني انسيابي متكامل (Humanoid 3D Character)
-    function createHumanoidPlayerMesh() {
+    function createHumanoidPlayerMesh(colorHex = 0x00ffff) {
         const group = new THREE.Group();
         const armorMat = new THREE.MeshStandardMaterial({ color: 0x1a1c2e, metalness: 0.8, roughness: 0.2 });
-        const glowMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+        const glowMat = new THREE.MeshBasicMaterial({ color: colorHex });
         const skinMat = new THREE.MeshStandardMaterial({ color: 0x22253a });
 
-        // الجذع
         const torso = new THREE.Mesh(new THREE.CylinderGeometry(5, 4, 18, 12), armorMat);
         torso.position.y = 19;
         group.add(torso);
 
-        // الرأس
         const head = new THREE.Mesh(new THREE.SphereGeometry(3.8, 16, 16), skinMat);
         head.position.y = 31;
         group.add(head);
 
-        // الخوذة/القناع النيون
         const visor = new THREE.Mesh(new THREE.BoxGeometry(4.5, 1.5, 2), glowMat);
         visor.position.set(0, 31.5, -2.2);
         group.add(visor);
 
-        // الذراعين
         const armGeo = new THREE.CylinderGeometry(1.5, 1.2, 14, 8);
         const leftArm = new THREE.Mesh(armGeo, armorMat);
         leftArm.position.set(-6.5, 20, 0);
@@ -322,7 +323,6 @@
         rightArm.position.set(6.5, 20, 0);
         group.add(rightArm);
 
-        // الساقين
         const legGeo = new THREE.CylinderGeometry(1.8, 1.4, 16, 8);
         const leftLeg = new THREE.Mesh(legGeo, armorMat);
         leftLeg.position.set(-2.5, 8, 0);
@@ -335,13 +335,11 @@
         return group;
     }
 
-    // تصميم أسلحة ثلاثية الأبعاد احترافية
     function buildHumanoidWeapons() {
         const metalMat = new THREE.MeshStandardMaterial({ color: 0x11111a, metalness: 0.95, roughness: 0.1 });
         const cyanGlow = new THREE.MeshStandardMaterial({ color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 1 });
         const purpleGlow = new THREE.MeshStandardMaterial({ color: 0x9b59b6, emissive: 0x9b59b6, emissiveIntensity: 0.9 });
 
-        // 1. السكين
         currentKnifeMesh = new THREE.Group();
         const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 3.5, 12), metalMat);
         handle.rotation.x = Math.PI / 2;
@@ -352,7 +350,6 @@
         currentKnifeMesh.position.set(1.5, -1.8, -3);
         fpWeaponGroup.add(currentKnifeMesh);
 
-        // 2. المسدس
         currentPistolMesh = new THREE.Group();
         const pGrip = new THREE.Mesh(new THREE.BoxGeometry(0.7, 2.8, 1.2), metalMat);
         pGrip.rotation.x = -0.2;
@@ -368,7 +365,6 @@
         currentPistolMesh.visible = false;
         fpWeaponGroup.add(currentPistolMesh);
 
-        // 3. البندقية الهجومية
         currentRifleMesh = new THREE.Group();
         const rBody = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.5, 8.5), metalMat);
         rBody.position.set(0, 0, -2);
@@ -400,13 +396,11 @@
     function buildStructuredMap() {
         const wallMat = new THREE.MeshStandardMaterial({ color: 0x22123d, emissive: 0x3d1266, emissiveIntensity: 0.4 });
 
-        // البرج الرئيسي
         const mainTower = new THREE.Mesh(new THREE.CylinderGeometry(50, 70, 300, 16), wallMat);
         mainTower.position.set(1250, 150, 2500);
         scene.add(mainTower);
         addObstacleBox(1250, 2500, 120, 120);
 
-        // العوائق المنظمة (مع تفادي منطقة Spawn)
         for (let i = -800; i <= 3300; i += 320) {
             for (let j = -800; j <= 3300; j += 320) {
                 if (Math.hypot(i - 1250, j - 1250) < 300) continue;
@@ -434,21 +428,172 @@
         return false;
     }
 
-    function spawnOnlinePlayer(id, name, x, z) {
-        if (otherPlayers[id]) return;
-        let pModel = createHumanoidPlayerMesh();
-        pModel.position.set(x, 0, z);
-        scene.add(pModel);
-        otherPlayers[id] = { mesh: pModel, name: name, kills: 0, deaths: 0 };
-        addChatMessage(`🎮 انضم المقاتل ${name} إلى الساحة!`, true);
+    // توليد 5 بوتات محترفة تشتبك مع الجميع
+    function spawnBots(count) {
+        const botNames = ["البوت_القاتل 🤖", "النيون_المفترس ⚡", "سبيكتر 🎯", "فانتوم ⚔️", "الصاروخ 🚀"];
+        const colors = [0xe74c3c, 0xe67e22, 0xf1c40f, 0x9b59b6, 0x1abc9c];
+
+        for (let i = 0; i < count; i++) {
+            let rx = 1250 + (Math.random() * 1200 - 600);
+            let rz = 1250 + (Math.random() * 1200 - 600);
+            let pModel = createHumanoidPlayerMesh(colors[i]);
+            pModel.position.set(rx, 0, rz);
+            scene.add(pModel);
+
+            bots.push({
+                id: 'bot_' + i,
+                name: botNames[i],
+                mesh: pModel,
+                x: rx, z: rz,
+                health: 100,
+                kills: 0, deaths: 0,
+                lastAttack: 0,
+                target: null
+            });
+
+            addChatMessage(`🤖 انضم البوت ${botNames[i]} إلى المباراة!`, true);
+        }
         updateLeaderboardUI();
+    }
+
+    // تحديث الذكاء الاصطناعي للبوتات
+    function updateBotsAI() {
+        const now = Date.now();
+
+        bots.forEach(bot => {
+            if (bot.health <= 0) return;
+
+            // تحديد أقرب هدف (اللاعب أو بوت آخر)
+            let closestDist = 9999;
+            let targetPos = null;
+            let targetObj = null;
+
+            // حساب المسافة إلى اللاعب الحقيقي
+            let distToPlayer = Math.hypot(myPlayerPos.x - bot.x, myPlayerPos.y - bot.z);
+            if (distToPlayer < closestDist) {
+                closestDist = distToPlayer;
+                targetPos = { x: myPlayerPos.x, z: myPlayerPos.y };
+                targetObj = "player";
+            }
+
+            // حساب المسافة للبوتات الأخرى
+            bots.forEach(otherBot => {
+                if (otherBot.id !== bot.id && otherBot.health > 0) {
+                    let d = Math.hypot(otherBot.x - bot.x, otherBot.z - bot.z);
+                    if (d < closestDist) {
+                        closestDist = d;
+                        targetPos = { x: otherBot.x, z: otherBot.z };
+                        targetObj = otherBot;
+                    }
+                }
+            });
+
+            // تحريك البوت باتجاه الهدف أو عشوائياً
+            if (targetPos && closestDist < 800) {
+                let dx = targetPos.x - bot.x;
+                let dz = targetPos.z - bot.z;
+                let angle = Math.atan2(dx, dz);
+                let speed = 2.8;
+
+                let nx = bot.x + Math.sin(angle) * speed;
+                let nz = bot.z + Math.cos(angle) * speed;
+
+                if (!checkCollision(nx, bot.z)) bot.x = nx;
+                if (!checkCollision(bot.x, nz)) bot.z = nz;
+
+                bot.mesh.position.set(bot.x, 0, bot.z);
+                bot.mesh.rotation.y = angle;
+
+                // إطلاق النار على الهدف عند الاقتراب
+                if (closestDist < 450 && now - bot.lastAttack > 450) {
+                    bot.lastAttack = now;
+                    let origin = new THREE.Vector3(bot.x, 22, bot.z);
+                    let targetVec = new THREE.Vector3(targetPos.x, 20, targetPos.z);
+                    
+                    createBulletTracer(origin, targetVec, 0xff0055);
+                    playSound('shoot');
+
+                    // إلحاق الضرر
+                    if (targetObj === "player") {
+                        takeDamage(12, bot.name);
+                    } else if (targetObj && targetObj.health) {
+                        targetObj.health -= 15;
+                        if (targetObj.health <= 0) {
+                            bot.kills++;
+                            targetObj.deaths++;
+                            addChatMessage(`☠️ قضى ${bot.name} على ${targetObj.name}`, true);
+                            setTimeout(() => {
+                                targetObj.health = 100;
+                                targetObj.x = 1250 + (Math.random() * 800 - 400);
+                                targetObj.z = 1250 + (Math.random() * 800 - 400);
+                            }, 3000);
+                            updateLeaderboardUI();
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // إنشاء شعب الرصاصة والطلقة البصرية Muzzle Flash & Laser Tracer
+    function createBulletTracer(startPos, endPos, colorHex = 0x00ffff) {
+        // 1. وميض الطلقة عند الفوهة (Muzzle Flash)
+        const flashGeo = new THREE.SphereGeometry(1.2, 8, 8);
+        const flashMat = new THREE.MeshBasicMaterial({ color: colorHex });
+        const flashMesh = new THREE.Mesh(flashGeo, flashMat);
+        flashMesh.position.copy(startPos);
+        scene.add(flashMesh);
+        setTimeout(() => scene.remove(flashMesh), 40);
+
+        // 2. شعاع الليزر/مسار الرصاصة المتوهج
+        const distance = startPos.distanceTo(endPos);
+        const cylinderGeo = new THREE.CylinderGeometry(0.2, 0.2, distance, 6);
+        const cylinderMat = new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity: 0.9 });
+        const tracer = new THREE.Mesh(cylinderGeo, cylinderMat);
+
+        tracer.position.copy(startPos).clone().lerp(endPos, 0.5);
+        tracer.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), endPos.clone().sub(startPos).normalize());
+
+        scene.add(tracer);
+        setTimeout(() => scene.remove(tracer), 80);
+
+        // 3. تأثير شرارات الاصطدام Hit Sparks
+        const sparkCount = 5;
+        for(let i = 0; i < sparkCount; i++) {
+            const spark = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), new THREE.MeshBasicMaterial({ color: colorHex }));
+            spark.position.copy(endPos);
+            scene.add(spark);
+            setTimeout(() => scene.remove(spark), 120);
+        }
+    }
+
+    function takeDamage(amount, attackerName) {
+        myHealth -= amount;
+        if (myHealth < 0) myHealth = 0;
+        document.getElementById('hpBarFill').style.width = myHealth + "%";
+
+        if (myHealth <= 0) {
+            myDeaths++;
+            addChatMessage(`☠️ تم القضاء عليك بواسطة ${attackerName}!`, true);
+            setTimeout(() => {
+                myHealth = 100;
+                document.getElementById('hpBarFill').style.width = "100%";
+                myPlayerPos = { x: 1250, y: 1250 };
+            }, 2500);
+            updateLeaderboardUI();
+        }
     }
 
     function setupSocketListeners() {
         if (!socket) return;
 
         socket.on('playerJoined', (data) => {
-            spawnOnlinePlayer(data.id, data.name, data.x, data.y);
+            let pModel = createHumanoidPlayerMesh();
+            pModel.position.set(data.x, 0, data.y);
+            scene.add(pModel);
+            otherPlayers[data.id] = { mesh: pModel, name: data.name, kills: 0, deaths: 0 };
+            addChatMessage(`🎮 انضم المقاتل ${data.name} إلى الساحة!`, true);
+            updateLeaderboardUI();
         });
 
         socket.on('playerLeft', (id) => {
@@ -469,7 +614,7 @@
             if (e.key === 'Enter' && input.value.trim() !== '') {
                 const msg = input.value.trim();
                 addChatMessage(`${myPlayerName}: ${msg}`, false);
-                if (socket) socket.emit('chatMessage', { name: myPlayerName, msg: msg });
+                if (socket && gameMode === "online") socket.emit('chatMessage', { name: myPlayerName, msg: msg });
                 input.value = '';
                 input.blur();
             }
@@ -502,6 +647,11 @@
     function updateLeaderboardUI() {
         const tbody = document.getElementById('leaderboardBody');
         tbody.innerHTML = `<tr><td>${myPlayerName} (أنت)</td><td>${myKills}</td><td>${myDeaths}</td></tr>`;
+        
+        bots.forEach(b => {
+            tbody.innerHTML += `<tr><td>${b.name}</td><td>${b.kills}</td><td>${b.deaths}</td></tr>`;
+        });
+
         for (let id in otherPlayers) {
             let p = otherPlayers[id];
             tbody.innerHTML += `<tr><td>${p.name}</td><td>${p.kills}</td><td>${p.deaths}</td></tr>`;
@@ -541,13 +691,11 @@
         document.getElementById('jumpBtn').addEventListener('touchstart', performJump);
     }
 
-    // إصلاح معادلة الحركة لتكون متطابقة 100% مع اتجاه زاوية الرؤية الكاميرا
     function handleFPSMovement() {
         let speed = 5.2;
         let moveX = 0;
         let moveZ = 0;
 
-        // حساب اتجاهات الأمام والخلف واليمين واليسار وفقاً لزاوية الكاميرا Yaw
         let forwardX = -Math.sin(playerYaw);
         let forwardZ = -Math.cos(playerYaw);
         let rightX = Math.sin(playerYaw + Math.PI / 2);
@@ -582,8 +730,45 @@
         if (now - lastAttackTime < weapon.cd) return;
         lastAttackTime = now;
 
-        if (currentWeaponId === 1) playSound('knife');
-        else playSound('shoot');
+        if (currentWeaponId === 1) {
+            playSound('knife');
+        } else {
+            playSound('shoot');
+
+            // حساب نقطة البداية والنهاية للرصاصة
+            let weaponPos = new THREE.Vector3();
+            camera.getWorldPosition(weaponPos);
+            weaponPos.y -= 3;
+
+            let dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+            let targetPoint = weaponPos.clone().add(dir.multiplyScalar(weapon.range));
+
+            createBulletTracer(weaponPos, targetPoint, 0x00ffff);
+
+            // فحص إطلاق النار على البوتات
+            bots.forEach(bot => {
+                if (bot.health <= 0) return;
+                let bDist = Math.hypot(bot.x - myPlayerPos.x, bot.z - myPlayerPos.y);
+                if (bDist < weapon.range) {
+                    let angleToBot = Math.atan2(bot.x - myPlayerPos.x, bot.z - myPlayerPos.y);
+                    let diff = Math.abs(angleToBot - playerYaw);
+                    if (diff < 0.35) {
+                        bot.health -= weapon.damage;
+                        if (bot.health <= 0) {
+                            myKills++;
+                            bot.deaths++;
+                            addChatMessage(`🎯 قمت بالقضاء على ${bot.name}!`, true);
+                            setTimeout(() => {
+                                bot.health = 100;
+                                bot.x = 1250 + (Math.random() * 800 - 400);
+                                bot.z = 1250 + (Math.random() * 800 - 400);
+                            }, 3500);
+                            updateLeaderboardUI();
+                        }
+                    }
+                }
+            });
+        }
 
         if (fpWeaponGroup) {
             fpWeaponGroup.position.z -= 0.8;
@@ -601,7 +786,6 @@
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // العوائق
         ctx.fillStyle = '#8e44ad';
         obstacleBoxes.forEach(b => {
             let relX = ((b.minX + b.maxX)/2 - myPlayerPos.x) * scale;
@@ -609,16 +793,17 @@
             ctx.fillRect(cx + relX - 2, cy + relZ - 2, 4, 4);
         });
 
-        // رسم لاعبي الأونلاين
-        ctx.fillStyle = '#e74c3c';
-        for (let id in otherPlayers) {
-            let pPos = otherPlayers[id].mesh.position;
-            let relX = (pPos.x - myPlayerPos.x) * scale;
-            let relZ = (pPos.z - myPlayerPos.y) * scale;
-            ctx.beginPath();
-            ctx.arc(cx + relX, cy + relZ, 3, 0, Math.PI * 2);
-            ctx.fill();
-        }
+        // رسم البوتات
+        ctx.fillStyle = '#ff0055';
+        bots.forEach(b => {
+            if (b.health > 0) {
+                let relX = (b.x - myPlayerPos.x) * scale;
+                let relZ = (b.z - myPlayerPos.y) * scale;
+                ctx.beginPath();
+                ctx.arc(cx + relX, cy + relZ, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        });
 
         // موقعك
         ctx.fillStyle = '#00ffff';
@@ -638,6 +823,7 @@
         initAudio();
         const nameInput = document.getElementById('playerName');
         myPlayerName = nameInput.value.trim() || "مقاتل";
+        gameMode = document.getElementById('gameModeSelect').value;
 
         document.getElementById('mainMenu').style.display = 'none';
         document.getElementById('gameWrapper').style.display = 'block';
@@ -650,7 +836,7 @@
         }
 
         init3D();
-        addChatMessage(`🔥 مرحباً بك ${myPlayerName} في الساحة!`, true);
+        addChatMessage(`🔥 مرحباً بك ${myPlayerName} في الساحة (${gameMode === 'bots' ? 'نمط البوتات' : 'أونلاين'})!`, true);
     });
 
     document.addEventListener('keydown', (e) => {
@@ -683,6 +869,7 @@
     function animate() {
         requestAnimationFrame(animate);
         handleFPSMovement();
+        if (gameMode === "bots") updateBotsAI();
         drawMinimap();
         if (renderer && scene && camera) renderer.render(scene, camera);
     }
