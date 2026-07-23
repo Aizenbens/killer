@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KRUNK-WAR 3D - Ultimate Realistic Edition</title>
+    <title>KRUNK-WAR 3D - Advanced Tactical Edition</title>
     <style>
         * { box-sizing: border-box; touch-action: none; -webkit-touch-callout: none; user-select: none; }
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Segoe UI', Tahoma, sans-serif; }
@@ -24,9 +24,6 @@
         input, select { background: #0f172a; color: #fff; text-align: center; border: 2px solid #334155; }
         
         .btn-main { background: #475569; color: #fff; cursor: pointer; border-bottom: 4px solid #1e293b; margin-top: 10px; }
-        .btn-sec { background: #3b82f6; color: #fff; cursor: pointer; border-bottom: 4px solid #1d4ed8; }
-        .btn-join { background: #10b981; color: #000; cursor: pointer; border-bottom: 4px solid #047857; }
-        button:active { border-bottom: 0px; transform: translateY(4px); }
 
         #gameWrapper { display: none; position: relative; width: 100vw; height: 100vh; }
         #crosshair { position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; transform: translate(-50%, -50%); pointer-events: none; z-index: 6; background: #10b981; border-radius: 50%; border: 1px solid #000; }
@@ -77,24 +74,18 @@
     </style>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
 <body>
 
 <div id="mainMenu">
     <div class="menu-card">
         <h1>KRUNK-WAR 3D</h1>
-        
-        <label>اسم اللاعب:</label>
-        <input type="text" id="playerName" placeholder="ادخل اسمك" maxlength="10" value="مقاتل">
-
         <label>الجهاز:</label>
         <select id="deviceSelect">
             <option value="pc">💻 كمبيوتر (ماوس + كيبورد)</option>
             <option value="phone">📱 هاتف (أزرار لمس)</option>
         </select>
-
-        <button class="btn-main" onclick="start3DGame()">دخول اللعبة 🚀</button>
+        <button class="btn-main" onclick="start3DGame()">دخول المعركة 🚀</button>
     </div>
 </div>
 
@@ -142,33 +133,31 @@
     let playerYaw = 0, playerPitch = 0;
     let selectedDevice = "pc";
     
-    const keys = { w: false, a: false, s: false, d: false, shift: false, c: false };
+    const keys = { w: false, a: false, s: false, d: false, shift: false };
     let touchMove = { x: 0, y: 0 };
-    let isSprinting = false;
-
-    // حالة الضغط على زر الزحلقة/الانبطاح C
-    let isHoldingC = false;
-    let isAiming = false;
+    let isSprinting = false, isHoldingC = false, isAiming = false;
 
     let baseEyeHeight = 35;
     let currentEyeHeight = 35;
     let velocityY = 0, isGrounded = true;
     
-    const gravity = -0.4;
-    const jumpPower = 6.5; 
+    const gravity = -0.38;
+    const jumpPower = 6.2; 
     let baseMoveSpeed = 3.2;
 
     let roundTimeSeconds = 240;
-    let timerInterval;
 
-    let fpWeaponGroup, currentKnifeMesh, currentPistolMesh, currentRifleMesh;
+    let fpWeaponGroup, muzzleFlashLight, muzzleParticle;
+    let currentKnifeMesh, currentPistolMesh, currentRifleMesh;
     let knifeAnimTime = 0, isKnifeSwinging = false;
-    let recoilOffset = 0;
-    let walkBobble = 0;
+    let recoilOffset = 0, walkBobble = 0;
 
     let colliders = [];
-    let houseFloors = [];
-    let houseStairs = [];
+    let houseBounds = [];
+    let stairsList = [];
+
+    // محرك الأثوات البرمجي (Web Audio API)
+    let audioCtx = null;
 
     const WEAPONS = {
         1: { name: "سكين تكتيكي 🗡️", cd: 200, damage: 100, maxAmmo: Infinity, currentAmmo: Infinity, isMelee: true },
@@ -177,35 +166,51 @@
     };
     let currentWeaponId = 3;
 
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+    }
+
+    function playGunSound(isSniper) {
+        if (!audioCtx) return;
+        let osc = audioCtx.createOscillator();
+        let gain = audioCtx.createGain();
+
+        osc.type = isSniper ? 'sawtooth' : 'square';
+        osc.frequency.setValueAtTime(isSniper ? 150 : 300, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + (isSniper ? 0.35 : 0.15));
+
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + (isSniper ? 0.35 : 0.15));
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start();
+        osc.stop(audioCtx.currentTime + (isSniper ? 0.35 : 0.15));
+    }
+
     function start3DGame() {
+        initAudio();
         selectedDevice = document.getElementById('deviceSelect').value;
         document.getElementById('mainMenu').style.display = 'none';
         document.getElementById('gameWrapper').style.display = 'block';
 
         init3D();
-        startRoundTimer();
-    }
-
-    function startRoundTimer() {
-        timerInterval = setInterval(() => {
+        setInterval(() => {
             roundTimeSeconds--;
             let mins = Math.floor(roundTimeSeconds / 60);
             let secs = roundTimeSeconds % 60;
-            document.getElementById('timerUI').innerText = 
-                `${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
-
-            if (roundTimeSeconds <= 0) {
-                clearInterval(timerInterval);
-                alert("انتهت الجولة!");
-                location.reload();
-            }
+            document.getElementById('timerUI').innerText = `${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
+            if (roundTimeSeconds <= 0) location.reload();
         }, 1000);
     }
 
     function init3D() {
         scene = new THREE.Scene();
-        scene.background = new THREE.Color('#78c8f6');
-        scene.fog = new THREE.FogExp2('#78c8f6', 0.00012);
+        scene.background = new THREE.Color('#3a4454');
+        scene.fog = new THREE.FogExp2('#3a4454', 0.00015);
 
         camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 4000);
         camera.rotation.order = 'YXZ';
@@ -215,42 +220,41 @@
         renderer.shadowMap.enabled = true;
         document.getElementById('gameWrapper').appendChild(renderer.domElement);
 
-        const ambLight = new THREE.AmbientLight(0xffffff, 0.75);
-        scene.add(ambLight);
-
-        const dirLight = new THREE.DirectionalLight(0xfff5ea, 1.0);
-        dirLight.position.set(1200, 2200, 1000);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+        const dirLight = new THREE.DirectionalLight(0xfff5ea, 0.9);
+        dirLight.position.set(1000, 2000, 1000);
         scene.add(dirLight);
 
-        // 1. أرضية معشبة بارزة (واقعية مثل الصور)
-        buildRealisticGrassField();
+        // 1. أرضية العشب المغطية لجميع أنحاء الخريطة
+        const grassMat = new THREE.MeshLambertMaterial({ color: 0x38a169 });
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(5000, 5000), grassMat);
+        floor.rotation.x = -Math.PI / 2;
+        floor.position.set(2500, 0, 2500);
+        scene.add(floor);
 
-        // 2. منازل زاهية مع شوارع وسلالم خارجية (مطابقة لصورة المنزل الأحمر)
-        buildRedStyleHouses();
+        // 2. إعادة بناء البيوت بأسلوبها الأول التكتيكي الرمادي مع أثاث داخلي
+        buildClassicTacticalHouses();
+
+        // 3. إضافة عوائق ضخمة للاختباء في جميع الخريطة
+        buildLargeCoverObstacles();
 
         fpWeaponGroup = new THREE.Group();
         camera.add(fpWeaponGroup);
         scene.add(camera);
 
-        buildAccurateWeapons();
+        buildWeaponsWithEffects();
 
-        // إدخالات لوحة التحكم
+        // الضوابط وإدخالات الكيبورد
         window.addEventListener('keydown', (e) => {
             if (e.code === 'KeyW') keys.w = true;
             if (e.code === 'KeyS') keys.s = true;
             if (e.code === 'KeyA') keys.a = true;
             if (e.code === 'KeyD') keys.d = true;
             if (e.code === 'ShiftLeft') keys.shift = true;
-            
-            // عند الضغط والاستمرار على C للزحلقة / الانبطاح
             if (e.code === 'KeyC') isHoldingC = true;
 
-            if (e.code === 'Space' && isGrounded) { 
-                velocityY = jumpPower; 
-                isGrounded = false; 
-            }
+            if (e.code === 'Space' && isGrounded) { velocityY = jumpPower; isGrounded = false; }
             if (e.code === 'KeyR') reloadWeapon();
-
             if (e.code === 'Digit1') selectWeapon(1);
             if (e.code === 'Digit2') selectWeapon(2);
             if (e.code === 'Digit3') selectWeapon(3);
@@ -262,8 +266,6 @@
             if (e.code === 'KeyA') keys.a = false;
             if (e.code === 'KeyD') keys.d = false;
             if (e.code === 'ShiftLeft') keys.shift = false;
-
-            // توقف الزحلقة فور رفع الإصبع عن C
             if (e.code === 'KeyC') isHoldingC = false;
         });
 
@@ -295,90 +297,124 @@
         animate();
     }
 
-    // إنشاء عشب بارز ومفصل ثلاثي الأبعاد
-    function buildRealisticGrassField() {
-        const floorMat = new THREE.MeshLambertMaterial({ color: 0x48bb78 });
-        const floor = new THREE.Mesh(new THREE.PlaneGeometry(5000, 5000), floorMat);
-        floor.rotation.x = -Math.PI / 2;
-        floor.position.set(2500, 0, 2500);
-        scene.add(floor);
+    // بناء البيوت الكلاسيكية الرمادية البرتقالية مع أرضية داخلية وأثاث منعاً للعشب
+    function buildClassicTacticalHouses() {
+        const greyWallMat = new THREE.MeshLambertMaterial({ color: 0x64748b });
+        const orangeAccentMat = new THREE.MeshLambertMaterial({ color: 0xdd6b20 });
+        const interiorFloorMat = new THREE.MeshLambertMaterial({ color: 0x334155 }); // أرضية خرسانية داخلية
+        const woodFurnitureMat = new THREE.MeshLambertMaterial({ color: 0x78350f });
 
-        // إضافة شجيرات وعشب بارز ذو تضاريس
-        const grassBladeGeo = new THREE.BoxGeometry(4, 14, 4);
-        const grassBladeMat = new THREE.MeshLambertMaterial({ color: 0x2f855a });
-        const grassInstanced = new THREE.InstancedMesh(grassBladeGeo, grassBladeMat, 800);
+        for (let i = 0; i < 6; i++) {
+            let hx = 900 + (i % 3) * 1400;
+            let hz = 900 + Math.floor(i / 3) * 1400;
+            let w = 340, d = 300, floorH = 75;
 
-        const dummy = new THREE.Object3D();
-        for (let i = 0; i < 800; i++) {
-            dummy.position.set(200 + Math.random() * 4600, 7, 200 + Math.random() * 4600);
-            dummy.rotation.y = Math.random() * Math.PI;
-            dummy.scale.set(1, 0.8 + Math.random() * 0.6, 1);
-            dummy.updateMatrix();
-            grassInstanced.setMatrixAt(i, dummy.matrix);
-        }
-        scene.add(grassInstanced);
-    }
+            // أرضية البيت الداخلية (ترتفع قليلاً فوق العشب)
+            let floorMesh = new THREE.Mesh(new THREE.BoxGeometry(w, 2, d), interiorFloorMat);
+            floorMesh.position.set(hx, 1, hz);
+            scene.add(floorMesh);
 
-    // بناء منازل زاهية التصميم مع شرفات وسلالم صلبة (تمنع الاختراق عند القفز)
-    function buildRedStyleHouses() {
-        const redMat = new THREE.MeshLambertMaterial({ color: 0xe53e3e }); // أحمر زاهي
-        const woodMat = new THREE.MeshLambertMaterial({ color: 0xa0522d });
-        const carMat = new THREE.MeshLambertMaterial({ color: 0xedf2f7 });
+            // الجدران المحيطة (مع الفتحات والأبواب البرتقالية)
+            let leftWall = new THREE.Mesh(new THREE.BoxGeometry(20, floorH * 2, d), greyWallMat);
+            leftWall.position.set(hx - w/2 + 10, floorH, hz);
+            scene.add(leftWall);
+            colliders.push({ x: hx - w/2 + 10, z: hz, w: 20, d: d });
 
-        for (let i = 0; i < 8; i++) {
-            let hx = 700 + (i % 3) * 1300;
-            let hz = 700 + Math.floor(i / 3) * 1300;
+            let rightWall = new THREE.Mesh(new THREE.BoxGeometry(20, floorH * 2, d), greyWallMat);
+            rightWall.position.set(hx + w/2 - 10, floorH, hz);
+            scene.add(rightWall);
+            colliders.push({ x: hx + w/2 - 10, z: hz, w: 20, d: d });
 
-            let houseWidth = 320, houseDepth = 300, floorH = 65;
+            let backWall = new THREE.Mesh(new THREE.BoxGeometry(w, floorH * 2, 20), greyWallMat);
+            backWall.position.set(hx, floorH, hz - d/2 + 10);
+            scene.add(backWall);
+            colliders.push({ x: hx, z: hz - d/2 + 10, w: w, d: 20 });
 
-            // الدور الأول
-            let baseHouse = new THREE.Mesh(new THREE.BoxGeometry(houseWidth, floorH, houseDepth), redMat);
-            baseHouse.position.set(hx, floorH / 2, hz);
-            scene.add(baseHouse);
-            colliders.push({ x: hx, z: hz, w: houseWidth, d: houseDepth });
+            // إطار الباب البرتقالي التكتيكي
+            let doorFrame = new THREE.Mesh(new THREE.BoxGeometry(80, floorH, 20), orangeAccentMat);
+            doorFrame.position.set(hx + w/4, floorH/2, hz + d/2 - 10);
+            scene.add(doorFrame);
 
-            // الدور الثاني (يتم الصعود له حصراً بالسلالم)
-            let secondFloorMesh = new THREE.Mesh(new THREE.BoxGeometry(houseWidth - 20, floorH, houseDepth - 20), redMat);
-            secondFloorMesh.position.set(hx, floorH + floorH / 2, hz);
-            scene.add(secondFloorMesh);
+            // سقف الدور الأول / أرضية الدور الثاني
+            let roofFloor = new THREE.Mesh(new THREE.BoxGeometry(w, 8, d), greyWallMat);
+            roofFloor.position.set(hx, floorH, hz);
+            scene.add(roofFloor);
 
-            // سجّل أرضية الدور الثاني للفيزياء الدقيقة
-            houseFloors.push({
-                x: hx, z: hz, 
-                w: houseWidth - 20, d: houseDepth - 20, 
-                yFloor: floorH, 
-                yCeil: floorH * 2
+            houseBounds.push({
+                x: hx, z: hz, w: w, d: d,
+                y1: 0, yCeil1: floorH,
+                y2: floorH, yCeil2: floorH * 2
             });
 
-            // سلم خارجي خشبي صلب
-            for (let s = 0; s < 12; s++) {
-                let step = new THREE.Mesh(new THREE.BoxGeometry(40, 5, 20), woodMat);
-                let sx = hx + houseWidth / 2 + 20;
-                let sy = s * 5.2 + 3;
-                let sz = (hz - houseDepth / 3) + s * 16;
+            // سلم متناسق ثلاثي الأبعاد للصعود والدخول بشكل منظم
+            for (let s = 0; s < 10; s++) {
+                let step = new THREE.Mesh(new THREE.BoxGeometry(45, 6, 25), orangeAccentMat);
+                let sx = hx - w/3;
+                let sy = s * 7.5 + 3;
+                let sz = (hz - d/3) + s * 18;
                 step.position.set(sx, sy, sz);
                 scene.add(step);
 
-                houseStairs.push({ x: sx, z: sz, yStep: sy + baseEyeHeight, radius: 25 });
+                stairsList.push({ x: sx, z: sz, yTarget: sy + baseEyeHeight, radius: 24 });
             }
 
-            // سيارة ديكورية بيضاء بجانب المنزل
-            let car = new THREE.Mesh(new THREE.BoxGeometry(70, 35, 130), carMat);
-            car.position.set(hx - houseWidth / 2 - 60, 17.5, hz);
-            scene.add(car);
-            colliders.push({ x: hx - houseWidth / 2 - 60, z: hz, w: 70, d: 130 });
+            // إضافة الأثاث الداخلي (طاولات وصناديق)
+            let table = new THREE.Mesh(new THREE.BoxGeometry(60, 20, 40), woodFurnitureMat);
+            table.position.set(hx + 40, 10, hz - 40);
+            scene.add(table);
+            colliders.push({ x: hx + 40, z: hz - 40, w: 60, d: 40 });
+
+            let crate = new THREE.Mesh(new THREE.BoxGeometry(35, 35, 35), orangeAccentMat);
+            crate.position.set(hx - 50, 17.5, hz + 50);
+            scene.add(crate);
+            colliders.push({ x: hx - 50, z: hz + 50, w: 35, d: 35 });
         }
     }
 
-    function buildAccurateWeapons() {
+    // بناء عوائق ضخمة في الخريطة للاختباء (حاويات شحن وجدران)
+    function buildLargeCoverObstacles() {
+        const containerMat = new THREE.MeshLambertMaterial({ color: 0x1e3a8a }); // أزرق داكن
+        const barrierMat = new THREE.MeshLambertMaterial({ color: 0x475569 });
+
+        const coverPositions = [
+            { x: 1800, z: 1800, w: 120, h: 70, d: 260, r: 0.3 },
+            { x: 2800, z: 1200, w: 240, h: 70, d: 110, r: -0.2 },
+            { x: 1500, z: 3200, w: 140, h: 80, d: 300, r: 0.8 },
+            { x: 3400, z: 2800, w: 260, h: 70, d: 120, r: 0 }
+        ];
+
+        coverPositions.forEach(c => {
+            let container = new THREE.Mesh(new THREE.BoxGeometry(c.w, c.h, c.d), containerMat);
+            container.position.set(c.x, c.h / 2, c.z);
+            container.rotation.y = c.r;
+            scene.add(container);
+            colliders.push({ x: c.x, z: c.z, w: c.w, d: c.d });
+        });
+
+        // جدران تكتيكية منفصلة للاختباء
+        for (let i = 0; i < 12; i++) {
+            let wx = 600 + Math.random() * 3800;
+            let wz = 600 + Math.random() * 3800;
+            let wall = new THREE.Mesh(new THREE.BoxGeometry(160, 50, 20), barrierMat);
+            wall.position.set(wx, 25, wz);
+            scene.add(wall);
+            colliders.push({ x: wx, z: wz, w: 160, d: 20 });
+        }
+    }
+
+    function buildWeaponsWithEffects() {
         const darkMetalMat = new THREE.MeshLambertMaterial({ color: 0x1a202c });
         const oliveMat = new THREE.MeshLambertMaterial({ color: 0x556b2f });
         const goldMat = new THREE.MeshLambertMaterial({ color: 0xd4af37 });
-        const woodGripMat = new THREE.MeshLambertMaterial({ color: 0x5c2c16 });
-        const steelBladeMat = new THREE.MeshLambertMaterial({ color: 0xe2e8f0 });
         const greenKnifeGripMat = new THREE.MeshLambertMaterial({ color: 0x10b981 });
+        const steelBladeMat = new THREE.MeshLambertMaterial({ color: 0xe2e8f0 });
 
-        // 1. السكين التكتيكي (مطابق للصورة)
+        // ضوء وميض النار المباشر عند الإطلاق
+        muzzleFlashLight = new THREE.PointLight(0xffaa00, 0, 40);
+        muzzleFlashLight.position.set(0, 0, -2.2);
+        fpWeaponGroup.add(muzzleFlashLight);
+
+        // 1. السكين
         currentKnifeMesh = new THREE.Group();
         let blade = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.25, 1.2), steelBladeMat);
         blade.position.set(0, 0, -0.6);
@@ -389,11 +425,11 @@
         currentKnifeMesh.position.set(0.35, -0.35, -0.8);
         fpWeaponGroup.add(currentKnifeMesh);
 
-        // 2. المسدس الذهبي النقشي (مطابق للصورة)
+        // 2. المسدس
         currentPistolMesh = new THREE.Group();
         let pSlide = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.22, 1.0), goldMat);
         pSlide.position.set(0, 0.1, -0.3);
-        let pGrip = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.55, 0.3), woodGripMat);
+        let pGrip = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.55, 0.3), darkMetalMat);
         pGrip.rotation.x = -0.2;
         pGrip.position.set(0, -0.22, 0.05);
         currentPistolMesh.add(pSlide, pGrip);
@@ -401,7 +437,7 @@
         currentPistolMesh.visible = false;
         fpWeaponGroup.add(currentPistolMesh);
 
-        // 3. القناصة (مطابقة للصورة)
+        // 3. القناصة
         currentRifleMesh = new THREE.Group();
         let rBody = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.32, 2.2), oliveMat);
         rBody.position.set(0, 0, -0.6);
@@ -421,10 +457,8 @@
     function toggleADS(state) {
         if (currentWeaponId === 1) return;
         isAiming = state;
-
         document.getElementById('crosshair').style.opacity = isAiming ? '0' : '1';
         document.getElementById('scopeOverlay').style.display = isAiming ? 'block' : 'none';
-
         fpWeaponGroup.visible = !isAiming;
         camera.fov = isAiming ? 25 : (isSprinting ? 85 : 75);
         camera.updateProjectionMatrix();
@@ -447,12 +481,10 @@
     function reloadWeapon() {
         const w = WEAPONS[currentWeaponId];
         if (w.isMelee || w.currentAmmo === w.maxAmmo || w.reserveAmmo <= 0) return;
-
         let needed = w.maxAmmo - w.currentAmmo;
         let reloadAmount = Math.min(needed, w.reserveAmmo);
         w.currentAmmo += reloadAmount;
         w.reserveAmmo -= reloadAmount;
-
         updateAmmoUI();
     }
 
@@ -462,11 +494,12 @@
         document.getElementById('weapon3DAmmoUI').innerText = w.isMelee ? "KNIFE" : `AMMO: ${w.currentAmmo}`;
     }
 
+    // منع اختراق الجدران والأثاث بنظام تصادم دقيق
     function checkWallCollision(nextX, nextZ) {
-        const playerRadius = 14;
+        const pR = 18; // نصف قطر تصادم اللاعب
         for (let c of colliders) {
-            if (nextX + playerRadius > c.x - c.w/2 && nextX - playerRadius < c.x + c.w/2 &&
-                nextZ + playerRadius > c.z - c.d/2 && nextZ - playerRadius < c.z + c.d/2) {
+            if (nextX + pR > c.x - c.w/2 && nextX - pR < c.x + c.w/2 &&
+                nextZ + pR > c.z - c.d/2 && nextZ - pR < c.z + c.d/2) {
                 return true;
             }
         }
@@ -487,16 +520,14 @@
             inputZ = -touchMove.y;
         }
 
-        // الزحلقة / الانبطاح مرتبطان حصراً بالاستمرار بالضغط على C
         let isSlidingOrProne = isHoldingC;
         isSprinting = (keys.shift || touchMove.isSprint) && keys.w && !isAiming && !isSlidingOrProne;
 
         let speed = baseMoveSpeed;
-        if (isSprinting) speed *= 1.6;
+        if (isSprinting) speed *= 1.65;
 
-        // عند الاستمرار بالضغط على زر C (انزلاق سريع أثناء الجري / انبطاح عند الوقوف)
         if (isSlidingOrProne) {
-            currentEyeHeight = 12; // انخفاض الرؤية للأرض
+            currentEyeHeight = 12;
             speed = isSprinting ? baseMoveSpeed * 2.2 : baseMoveSpeed * 0.4;
         } else {
             currentEyeHeight = baseEyeHeight;
@@ -514,36 +545,35 @@
             if (!checkWallCollision(myPos.x, nextZ)) myPos.z = nextZ;
         }
 
-        // --- نظام فيزياء الأدوار القوي (يمنع الاختراق بالقفز) ---
-        let targetGroundY = currentEyeHeight; // الأرضية الأساسية
+        // فيزياء الطوابق والسلالم المنطقية
+        let targetGroundY = currentEyeHeight;
 
-        // التحقق من السلالم
-        for (let st of houseStairs) {
+        // التحقق السلس من السلالم
+        for (let st of stairsList) {
             let dx = myPos.x - st.x;
             let dz = myPos.z - st.z;
             if (Math.sqrt(dx * dx + dz * dz) < st.radius) {
-                targetGroundY = st.yStep;
+                targetGroundY = st.yTarget;
             }
         }
 
-        // التحقق من الأدوار العلوية (فقط إذا كان اللاعب أعلى من مستوى سقف الدور الأول)
-        for (let fl of houseFloors) {
-            if (myPos.x > fl.x - fl.w/2 && myPos.x < fl.x + fl.w/2 &&
-                myPos.z > fl.z - fl.d/2 && myPos.z < fl.z + fl.d/2) {
-                
-                // إذا كان اللاعب فوق الدور الثاني بالفعل ينزل عليه
-                if (myPos.y >= fl.yFloor + currentEyeHeight - 5) {
-                    targetGroundY = fl.yFloor + currentEyeHeight;
+        // التحقق من الطوابق والسقف داخل البيوت
+        for (let h of houseBounds) {
+            if (myPos.x > h.x - h.w/2 && myPos.x < h.x + h.w/2 &&
+                myPos.z > h.z - h.d/2 && myPos.z < h.z + h.d/2) {
+
+                // إذا كان اللاعب في الدور الثاني فعلياً
+                if (myPos.y >= h.y2 + currentEyeHeight - 10) {
+                    targetGroundY = h.y2 + currentEyeHeight;
                 } else {
-                    // إذا كان بالأسفل وقفز، يتصادم مع السقف ولن يعبره
-                    if (myPos.y + velocityY > fl.yFloor) {
-                        velocityY = -0.1; // التصادم بالسقف
+                    // القفز داخل الدور الأول: الاصطدام بالسقف دون الانتقال الفوري
+                    if (myPos.y + velocityY > h.yCeil1 - 5) {
+                        velocityY = -0.5; // الارتطام بالسقف
                     }
                 }
             }
         }
 
-        // تطبيق الجاذبية والحركة الرأسية
         velocityY += gravity;
         myPos.y += velocityY;
 
@@ -561,7 +591,7 @@
         }
 
         if (recoilOffset > 0) {
-            recoilOffset -= 0.05;
+            recoilOffset -= 0.04;
             fpWeaponGroup.position.z = recoilOffset;
         }
 
@@ -616,7 +646,6 @@
         document.getElementById('adsBtn').addEventListener('touchstart', () => toggleADS(!isAiming));
         document.getElementById('reloadBtn').addEventListener('touchstart', reloadWeapon);
         
-        // زر C باللمس للزحلقة مع رفع الأصبع
         const proneBtn = document.getElementById('proneBtn');
         proneBtn.addEventListener('touchstart', (e) => { e.preventDefault(); isHoldingC = true; });
         proneBtn.addEventListener('touchend', (e) => { e.preventDefault(); isHoldingC = false; });
@@ -649,8 +678,15 @@
         weapon.currentAmmo--;
         updateAmmoUI();
 
-        recoilOffset = 0.2;
-        playerPitch += 0.01;
+        // تشغيل صوت وميض إطلاق النار البرمجي
+        playGunSound(currentWeaponId === 3);
+
+        // إظهار وميض النار البصري (Muzzle Flash)
+        muzzleFlashLight.intensity = 2.5;
+        setTimeout(() => { muzzleFlashLight.intensity = 0; }, 50);
+
+        recoilOffset = 0.22;
+        playerPitch += (currentWeaponId === 3 ? 0.025 : 0.012);
     }
 </script>
 </body>
