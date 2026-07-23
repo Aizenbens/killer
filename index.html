@@ -33,68 +33,72 @@
         #gameWrapper { display: none; position: relative; width: 100vw; height: 100vh; }
         
         #healthUI {
-            position: absolute; top: 15px; left: 15px; background: rgba(6, 2, 15, 0.9);
-            padding: 10px 15px; border-radius: 12px; border: 1px solid #00ffff;
-            color: #fff; font-weight: bold; font-size: 12px; z-index: 4; width: 140px;
+            position: absolute; top: 12px; left: 12px; background: rgba(6, 2, 15, 0.85);
+            padding: 8px 12px; border-radius: 10px; border: 1px solid #00ffff;
+            color: #fff; font-weight: bold; font-size: 11px; z-index: 4; width: 120px;
         }
-        .hp-bar-container { width: 100%; background: #111; height: 8px; border-radius: 4px; margin-top: 5px; overflow: hidden; }
+        .hp-bar-container { width: 100%; background: #111; height: 6px; border-radius: 3px; margin-top: 4px; overflow: hidden; }
         #hpBarFill { width: 100%; background: #00ffff; height: 100%; transition: width 0.2s; }
 
-        #ammoDisplay { margin-top: 8px; font-size: 13px; color: #ffcc00; display: flex; justify-content: space-between; }
+        #ammoDisplay { margin-top: 6px; font-size: 11px; color: #ffcc00; display: flex; justify-content: space-between; }
 
         #roundBanner {
-            position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
-            background: rgba(12, 5, 26, 0.9); padding: 8px 25px; border-radius: 20px;
-            border: 2px solid #00ffff; color: #fff; font-weight: 900; font-size: 16px;
-            z-index: 5; box-shadow: 0 0 15px rgba(0, 255, 255, 0.3); text-align: center;
+            position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+            background: rgba(12, 5, 26, 0.85); padding: 6px 18px; border-radius: 16px;
+            border: 1px solid #00ffff; color: #fff; font-weight: 900; font-size: 14px;
+            z-index: 5; box-shadow: 0 0 10px rgba(0, 255, 255, 0.3); text-align: center;
         }
 
         #roundWinnerModal {
             display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(10, 5, 22, 0.95); border: 3px solid #00ffff; border-radius: 20px;
-            padding: 25px 40px; color: #fff; text-align: center; z-index: 10;
-            box-shadow: 0 0 50px rgba(0, 255, 255, 0.5); backdrop-filter: blur(10px);
+            background: rgba(10, 5, 22, 0.95); border: 2px solid #00ffff; border-radius: 16px;
+            padding: 20px 30px; color: #fff; text-align: center; z-index: 10;
+            box-shadow: 0 0 40px rgba(0, 255, 255, 0.5); backdrop-filter: blur(10px);
         }
-        #roundWinnerModal h2 { margin: 0 0 10px 0; color: #ffcc00; font-size: 28px; }
-        #roundWinnerModal p { margin: 0; font-size: 16px; color: #00ffff; }
+        #roundWinnerModal h2 { margin: 0 0 8px 0; color: #ffcc00; font-size: 24px; }
+        #roundWinnerModal p { margin: 0; font-size: 14px; color: #00ffff; }
 
         #weaponUI {
-            position: absolute; bottom: 20px; right: 20px;
-            background: rgba(6, 2, 15, 0.9); padding: 10px 14px; border-radius: 14px;
-            border: 2px solid #00ffff; color: #fff; font-weight: 900; font-size: 12px;
-            z-index: 4; text-align: center; box-shadow: 0 0 15px rgba(0,255,255,0.2);
+            position: absolute; bottom: 15px; right: 15px;
+            background: rgba(6, 2, 15, 0.85); padding: 8px 12px; border-radius: 12px;
+            border: 1px solid #00ffff; color: #fff; font-weight: 900; font-size: 11px;
+            z-index: 4; text-align: center;
         }
-        .weapon-slots { display: flex; gap: 5px; margin-top: 5px; }
-        .slot { padding: 5px 10px; background: #1b0933; border: 1px solid #555; border-radius: 6px; font-size: 10px; cursor: pointer; color: #fff; }
+        .weapon-slots { display: flex; gap: 4px; margin-top: 4px; }
+        .slot { padding: 4px 8px; background: #1b0933; border: 1px solid #555; border-radius: 6px; font-size: 10px; cursor: pointer; color: #fff; }
         .slot.active { border-color: #00ffff; background: #00ffff; color: #000; font-weight: bold; }
 
+        /* زر TAB المصغر والجديد بدون التأثير على شريط الصحة */
         #tabBtn {
-            position: absolute; top: 15px; right: 145px; z-index: 5;
-            background: rgba(6, 2, 15, 0.85); border: 1px solid #9b59b6; color: #fff;
-            padding: 5px 10px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 11px;
+            position: absolute; top: 12px; left: 142px; z-index: 5;
+            background: rgba(6, 2, 15, 0.85); border: 1px solid #00ffff; color: #fff;
+            width: 30px; height: 30px; border-radius: 8px; font-weight: bold;
+            cursor: pointer; font-size: 12px; display: flex; justify-content: center; align-items: center;
+            box-shadow: 0 0 8px rgba(0, 255, 255, 0.2);
         }
+
         #leaderboardModal {
             display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 80%; max-width: 420px; background: rgba(10, 5, 22, 0.95); border: 2px solid #00ffff;
+            width: 80%; max-width: 380px; background: rgba(10, 5, 22, 0.95); border: 2px solid #00ffff;
             border-radius: 16px; padding: 15px; z-index: 9; color: #fff; backdrop-filter: blur(10px);
         }
-        #leaderboardModal h3 { margin-top: 0; text-align: center; color: #00ffff; font-size: 16px; }
-        .stats-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        .stats-table th, .stats-table td { padding: 6px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 12px; }
+        #leaderboardModal h3 { margin-top: 0; text-align: center; color: #00ffff; font-size: 15px; }
+        .stats-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        .stats-table th, .stats-table td { padding: 5px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 11px; }
 
         #chatContainer {
-            position: absolute; bottom: 20px; left: 20px; width: 220px;
-            background: rgba(6, 2, 15, 0.85); border-radius: 10px; padding: 8px;
+            position: absolute; bottom: 15px; left: 15px; width: 180px;
+            background: rgba(6, 2, 15, 0.85); border-radius: 8px; padding: 6px;
             display: flex; flex-direction: column; z-index: 5; border: 1px solid rgba(0,255,255,0.3);
         }
-        #chatArea { height: 90px; overflow-y: auto; color: #fff; font-size: 11px; margin-bottom: 5px; text-align: right; direction: rtl; }
+        #chatArea { height: 70px; overflow-y: auto; color: #fff; font-size: 10px; margin-bottom: 4px; text-align: right; direction: rtl; }
         .chat-msg { margin: 2px 0; }
         .chat-sys { color: #00ffff; font-weight: bold; }
-        #chatInput { padding: 6px; font-size: 11px; width: 100%; background: rgba(255,255,255,0.1); color: #fff; border: 1px solid #444; border-radius: 5px; box-sizing: border-box; }
+        #chatInput { padding: 4px; font-size: 10px; width: 100%; background: rgba(255,255,255,0.1); color: #fff; border: 1px solid #444; border-radius: 4px; box-sizing: border-box; }
 
         #minimapCanvas {
-            position: absolute; top: 15px; right: 15px;
-            width: 110px; height: 110px; border-radius: 50%;
+            position: absolute; top: 12px; right: 12px;
+            width: 90px; height: 90px; border-radius: 50%;
             border: 2px solid #00ffff; background: rgba(10, 5, 20, 0.85); z-index: 4;
         }
 
@@ -103,24 +107,24 @@
             transform: translate(-50%, -50%); pointer-events: none; z-index: 6;
         }
         #crosshair::before, #crosshair::after { content: ''; position: absolute; background: #00ffff; }
-        #crosshair::before { top: 3px; left: -6px; width: 20px; height: 2px; }
-        #crosshair::after { top: -6px; left: 3px; width: 2px; height: 20px; }
+        #crosshair::before { top: 3px; left: -5px; width: 18px; height: 2px; }
+        #crosshair::after { top: -5px; left: 3px; width: 2px; height: 18px; }
 
         .nameplate {
             position: absolute; transform: translate(-50%, -100%);
             display: flex; flex-direction: column; align-items: center; pointer-events: none;
-            z-index: 3; transition: opacity 0.1s;
+            z-index: 3;
         }
-        .nameplate-title { color: #fff; font-size: 11px; font-weight: bold; text-shadow: 0 0 4px #000; margin-bottom: 2px; white-space: nowrap; }
-        .nameplate-bar-bg { width: 50px; height: 5px; background: rgba(0,0,0,0.7); border-radius: 3px; border: 1px solid #fff; overflow: hidden; }
+        .nameplate-title { color: #fff; font-size: 10px; font-weight: bold; text-shadow: 0 0 3px #000; margin-bottom: 2px; }
+        .nameplate-bar-bg { width: 45px; height: 4px; background: rgba(0,0,0,0.7); border-radius: 2px; border: 1px solid #fff; overflow: hidden; }
         .nameplate-bar-fill { height: 100%; background: #00ff66; width: 100%; }
 
-        .touch-controls { position: absolute; bottom: 20px; left: 20px; right: 20px; display: flex; justify-content: space-between; align-items: flex-end; pointer-events: none; z-index: 5; }
-        .joystick-zone { width: 100px; height: 100px; border: 2px dashed rgba(0, 255, 255, 0.5); border-radius: 50%; display: flex; justify-content: center; align-items: center; pointer-events: auto; }
-        .joystick-stick { width: 40px; height: 40px; background: linear-gradient(135deg, #00ffff, #9b59b6); border-radius: 50%; }
-        .touch-action-btns { display: flex; gap: 8px; pointer-events: auto; }
-        .action-btn { width: 55px; height: 55px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-weight: 900; font-size: 11px; border: 1px solid rgba(255,255,255,0.4); }
-        .fire-btn { background: linear-gradient(135deg, #e74c3c, #c0392b); width: 65px; height: 65px; font-size: 12px; }
+        .touch-controls { position: absolute; bottom: 15px; left: 15px; right: 15px; display: flex; justify-content: space-between; align-items: flex-end; pointer-events: none; z-index: 5; }
+        .joystick-zone { width: 90px; height: 90px; border: 2px dashed rgba(0, 255, 255, 0.4); border-radius: 50%; display: flex; justify-content: center; align-items: center; pointer-events: auto; }
+        .joystick-stick { width: 36px; height: 36px; background: linear-gradient(135deg, #00ffff, #9b59b6); border-radius: 50%; }
+        .touch-action-btns { display: flex; gap: 6px; pointer-events: auto; }
+        .action-btn { width: 50px; height: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-weight: 900; font-size: 10px; border: 1px solid rgba(255,255,255,0.4); }
+        .fire-btn { background: linear-gradient(135deg, #e74c3c, #c0392b); width: 60px; height: 60px; font-size: 11px; }
         .reload-btn { background: linear-gradient(135deg, #f39c12, #d35400); }
         .jump-btn { background: linear-gradient(135deg, #2ecc71, #27ae60); }
     </style>
@@ -146,7 +150,7 @@
 
 <div id="gameWrapper">
     <div id="crosshair"></div>
-    <canvas id="minimapCanvas" width="110" height="110"></canvas>
+    <canvas id="minimapCanvas" width="90" height="90"></canvas>
 
     <div id="roundBanner">الجولة: <span id="roundNumber">1</span> 🏆</div>
 
@@ -159,11 +163,11 @@
         </div>
     </div>
 
-    <button id="tabBtn" onclick="toggleLeaderboard()">📊 TAB</button>
+    <button id="tabBtn" onclick="toggleLeaderboard()">📊</button>
 
     <div id="chatContainer">
         <div id="chatArea"></div>
-        <input type="text" id="chatInput" placeholder="اكتب رسالة..." maxlength="50">
+        <input type="text" id="chatInput" placeholder="رسالة..." maxlength="50">
     </div>
 
     <div id="weaponUI">
@@ -236,9 +240,9 @@
     let playerY = 34;
     let velocityY = 0;
     let isGrounded = true;
-    const gravity = -0.65;
-    const jumpPower = 12.0;
-    const movementSpeed = 8.0; // حركة أسرع وأكثر سلاسة
+    const gravity = -0.55;
+    const jumpPower = 10.5;
+    const movementSpeed = 5.2; // تقليل السرعة قليلاً لجعل التحكم أسهل وأكثر سلاسة
 
     let audioCtx;
 
@@ -266,7 +270,7 @@
             osc.type = 'sawtooth';
             osc.frequency.setValueAtTime(550, audioCtx.currentTime);
             osc.frequency.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-            gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
             osc.start(); osc.stop(audioCtx.currentTime + 0.1);
         } else if (type === 'reload') {
@@ -314,9 +318,10 @@
         camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 5000);
         camera.rotation.order = 'YXZ';
 
-        renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        // تحسين أداء وحركة اللعبة على أجهزة الهاتف
+        renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
         container.appendChild(renderer.domElement);
 
         const ambLight = new THREE.AmbientLight(0xffffff, 2.0);
@@ -356,12 +361,13 @@
 
         window.addEventListener('mousemove', (e) => {
             if (document.pointerLockElement === document.body || e.buttons === 1) {
-                playerYaw -= e.movementX * 0.0025;
-                playerPitch -= e.movementY * 0.0025;
+                playerYaw -= e.movementX * 0.0022;
+                playerPitch -= e.movementY * 0.0022;
                 playerPitch = Math.max(-Math.PI / 2.1, Math.min(Math.PI / 2.1, playerPitch));
             }
         });
 
+        // حركة دوران وتمرير سلسة ومباشرة على شاشات الهواتف
         let lastTouchX = null, lastTouchY = null;
         window.addEventListener('touchmove', (e) => {
             for (let t of e.changedTouches) {
@@ -369,15 +375,16 @@
                     if (lastTouchX !== null) {
                         let deltaX = t.clientX - lastTouchX;
                         let deltaY = t.clientY - lastTouchY;
-                        playerYaw -= deltaX * 0.004;
-                        playerPitch -= deltaY * 0.004;
+                        playerYaw -= deltaX * 0.003;
+                        playerPitch -= deltaY * 0.003;
                         playerPitch = Math.max(-Math.PI / 2.1, Math.min(Math.PI / 2.1, playerPitch));
                     }
                     lastTouchX = t.clientX;
                     lastTouchY = t.clientY;
                 }
             }
-        });
+        }, { passive: true });
+
         window.addEventListener('touchend', () => { lastTouchX = null; lastTouchY = null; });
 
         window.addEventListener('resize', onWindowResize);
@@ -392,47 +399,14 @@
         const group = new THREE.Group();
         const armorMat = new THREE.MeshStandardMaterial({ color: 0x1f2438, metalness: 0.7, roughness: 0.3 });
         const accentMat = new THREE.MeshStandardMaterial({ color: colorHex, metalness: 0.5, roughness: 0.5 });
-        const visorMat = new THREE.MeshBasicMaterial({ color: colorHex });
 
         const torso = new THREE.Mesh(new THREE.BoxGeometry(10, 18, 6), armorMat);
         torso.position.y = 19;
         group.add(torso);
 
-        const vest = new THREE.Mesh(new THREE.BoxGeometry(10.8, 12, 6.8), accentMat);
-        vest.position.y = 19;
-        group.add(vest);
-
-        const head = new THREE.Mesh(new THREE.SphereGeometry(3.8, 16, 16), armorMat);
+        const head = new THREE.Mesh(new THREE.SphereGeometry(3.8, 12, 12), armorMat);
         head.position.y = 31;
         group.add(head);
-
-        const visor = new THREE.Mesh(new THREE.BoxGeometry(5, 1.8, 2), visorMat);
-        visor.position.set(0, 31.5, -2.5);
-        group.add(visor);
-
-        const armGeo = new THREE.CylinderGeometry(1.5, 1.2, 14, 8);
-        const leftArm = new THREE.Mesh(armGeo, armorMat);
-        leftArm.position.set(-6.5, 20, -2);
-        leftArm.rotation.x = -Math.PI / 4;
-        group.add(leftArm);
-
-        const rightArm = new THREE.Mesh(armGeo, armorMat);
-        rightArm.position.set(6.5, 20, -2);
-        rightArm.rotation.x = -Math.PI / 3;
-        group.add(rightArm);
-
-        const gunBody = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2, 8), new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.9 }));
-        gunBody.position.set(3, 18, -6);
-        group.add(gunBody);
-
-        const legGeo = new THREE.CylinderGeometry(1.8, 1.4, 16, 8);
-        const leftLeg = new THREE.Mesh(legGeo, armorMat);
-        leftLeg.position.set(-2.8, 8, 0);
-        group.add(leftLeg);
-
-        const rightLeg = new THREE.Mesh(legGeo, armorMat);
-        rightLeg.position.set(2.8, 8, 0);
-        group.add(rightLeg);
 
         return group;
     }
@@ -440,16 +414,11 @@
     function buildRealisticWeapons() {
         const gunMetalMat = new THREE.MeshStandardMaterial({ color: 0x18191c, metalness: 0.9, roughness: 0.2 });
         const darkWoodMat = new THREE.MeshStandardMaterial({ color: 0x2d1a0e, roughness: 0.8 });
-        const goldAccent = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.8, roughness: 0.3 });
-        const cyanNeon = new THREE.MeshBasicMaterial({ color: 0x00ffff });
 
         currentKnifeMesh = new THREE.Group();
-        const kHandle = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.6, 4, 12), darkWoodMat);
+        const kHandle = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.6, 4, 8), darkWoodMat);
         kHandle.rotation.x = Math.PI / 2;
         currentKnifeMesh.add(kHandle);
-        const kGuard = new THREE.Mesh(new THREE.BoxGeometry(2, 0.4, 0.6), goldAccent);
-        kGuard.position.set(0, 0, -2);
-        currentKnifeMesh.add(kGuard);
         const kBlade = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.6, 7), gunMetalMat);
         kBlade.position.set(0, 0.3, -5.5);
         currentKnifeMesh.add(kBlade);
@@ -463,10 +432,6 @@
         const pSlide = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.3, 5.5), gunMetalMat);
         pSlide.position.set(0, 1.4, -1.8);
         currentPistolMesh.add(pSlide);
-        const pBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 5.6, 12), goldAccent);
-        pBarrel.rotation.x = Math.PI / 2;
-        pBarrel.position.set(0, 1.4, -2.2);
-        currentPistolMesh.add(pBarrel);
         currentPistolMesh.position.set(1.8, -1.8, -3.5);
         currentPistolMesh.visible = false;
         fpWeaponGroup.add(currentPistolMesh);
@@ -475,20 +440,10 @@
         const rBody = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.6, 7), gunMetalMat);
         rBody.position.set(0, 0, -1);
         currentRifleMesh.add(rBody);
-        const rStock = new THREE.Mesh(new THREE.BoxGeometry(1.0, 2.2, 4.5), darkWoodMat);
-        rStock.position.set(0, -0.3, 3.8);
-        currentRifleMesh.add(rStock);
-        const rBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 10, 12), gunMetalMat);
+        const rBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 10, 8), gunMetalMat);
         rBarrel.rotation.x = Math.PI / 2;
         rBarrel.position.set(0, 0.4, -8.5);
         currentRifleMesh.add(rBarrel);
-        const rMag = new THREE.Mesh(new THREE.BoxGeometry(0.8, 4, 1.8), goldAccent);
-        rMag.position.set(0, -2.2, -2);
-        rMag.rotation.x = 0.3;
-        currentRifleMesh.add(rMag);
-        const rSight = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.6, 2.5), cyanNeon);
-        rSight.position.set(0, 1.2, -2);
-        currentRifleMesh.add(rSight);
         currentRifleMesh.position.set(2, -2, -4);
         currentRifleMesh.visible = false;
         fpWeaponGroup.add(currentRifleMesh);
@@ -516,8 +471,6 @@
         isReloading = true;
         playSound('reload');
 
-        if (fpWeaponGroup) fpWeaponGroup.rotation.z = -0.5;
-
         setTimeout(() => {
             let needed = w.maxAmmo - w.currentAmmo;
             let amountToReload = Math.min(needed, w.reserveAmmo);
@@ -525,7 +478,6 @@
             w.reserveAmmo -= amountToReload;
 
             isReloading = false;
-            if (fpWeaponGroup) fpWeaponGroup.rotation.z = 0;
             updateAmmoUI();
         }, w.reloadTime);
     }
@@ -540,7 +492,6 @@
         }
     }
 
-    // توليد خريطة عشوائية جديدة عند كل جولة
     function generateRandomMap() {
         mapObstacleMeshes.forEach(mesh => scene.remove(mesh));
         mapObstacleMeshes = [];
@@ -549,7 +500,6 @@
         const wallMat = new THREE.MeshStandardMaterial({ color: 0x1a122e, roughness: 0.4 });
         const boxMat = new THREE.MeshStandardMaterial({ color: 0x2e1c4d, metalness: 0.3 });
 
-        // الحدود الخارجية
         const mapBounds = [
             { x: 1250, z: -50, w: 2600, h: 40 },
             { x: 1250, z: 2550, w: 2600, h: 40 },
@@ -564,13 +514,12 @@
             addObstacleBox(b.x, b.z, b.w, b.h);
         });
 
-        // توليد عوائق ومجسمات في أماكن جديدة ومختلفة في كل جولة
-        for (let x = 200; x < 2400; x += 180) {
-            for (let z = 200; z < 2400; z += 180) {
-                if (Math.random() > 0.6) {
-                    let w = Math.random() * 60 + 30;
-                    let h = Math.random() * 60 + 30;
-                    let height = Math.random() * 50 + 25;
+        for (let x = 200; x < 2400; x += 220) {
+            for (let z = 200; z < 2400; z += 220) {
+                if (Math.random() > 0.65) {
+                    let w = Math.random() * 50 + 30;
+                    let h = Math.random() * 50 + 30;
+                    let height = Math.random() * 40 + 20;
 
                     const block = new THREE.Mesh(new THREE.BoxGeometry(w, height, h), boxMat);
                     block.position.set(x, height / 2, z);
@@ -583,7 +532,7 @@
     }
 
     function addObstacleBox(x, z, w, h) {
-        obstacleBoxes.push({ minX: x - w/2 - 12, maxX: x + w/2 + 12, minZ: z - h/2 - 12, maxZ: z + h/2 + 12 });
+        obstacleBoxes.push({ minX: x - w/2 - 10, maxX: x + w/2 + 10, minZ: z - h/2 - 10, maxZ: z + h/2 + 10 });
     }
 
     function checkCollision(newX, newZ) {
@@ -642,7 +591,7 @@
         if (!nameplateEl) return;
         if (health <= 0) { nameplateEl.style.display = 'none'; return; }
 
-        let headPos = new THREE.Vector3(obj3D.position.x, 38, obj3D.position.z);
+        let headPos = new THREE.Vector3(obj3D.position.x, 36, obj3D.position.z);
         headPos.project(camera);
 
         if (headPos.z > 1) {
@@ -668,9 +617,7 @@
             document.getElementById('winnerSub').innerText = "🥇 الفائز بالمركز الأول: " + killerName;
             document.getElementById('roundWinnerModal').style.display = 'block';
 
-            setTimeout(() => {
-                startNextRound();
-            }, 4000);
+            setTimeout(() => { startNextRound(); }, 4000);
         }
     }
 
@@ -679,7 +626,6 @@
         currentRound++;
         document.getElementById('roundNumber').innerText = currentRound;
 
-        // إعادة ضبط الإحصائيات
         myKills = 0; myDeaths = 0;
         myHealth = 100;
         document.getElementById('hpBarFill').style.width = "100%";
@@ -688,17 +634,14 @@
         WEAPONS[3].currentAmmo = WEAPONS[3].maxAmmo; WEAPONS[3].reserveAmmo = 150;
         updateAmmoUI();
 
-        // توليد خريطة جديدة ونقل اللاعبين
         generateRandomMap();
         let respawn = getRandomSpawnPos();
         myPlayerPos = { x: respawn.x, y: respawn.z };
 
-        if (gameMode === "bots") {
-            spawnBots(6);
-        }
+        if (gameMode === "bots") spawnBots(6);
 
         roundEnded = false;
-        addChatMessage(`🔄 بدأت الجولة ${currentRound}! تم تغيير مواقع العوائق.`, true);
+        addChatMessage(`🔄 بدأت الجولة ${currentRound}!`, true);
         updateLeaderboardUI();
     }
 
@@ -736,17 +679,17 @@
                 }
             });
 
-            if (targetPos && closestDist < 1000) {
+            if (targetPos && closestDist < 900) {
                 let dx = targetPos.x - bot.x;
                 let dz = targetPos.z - bot.z;
                 let angle = Math.atan2(dx, dz);
 
-                let speed = 4.2;
-                if (closestDist < 120) speed = -2.5;
+                let speed = 3.2;
+                if (closestDist < 100) speed = -2.0;
 
                 let strafeAngle = angle + (Math.PI / 2) * bot.strafeDir;
-                let nx = bot.x + Math.sin(angle) * speed + Math.sin(strafeAngle) * 1.2;
-                let nz = bot.z + Math.cos(angle) * speed + Math.cos(strafeAngle) * 1.2;
+                let nx = bot.x + Math.sin(angle) * speed + Math.sin(strafeAngle) * 1.0;
+                let nz = bot.z + Math.cos(angle) * speed + Math.cos(strafeAngle) * 1.0;
 
                 if (!checkCollision(nx, bot.z)) bot.x = nx;
                 if (!checkCollision(bot.x, nz)) bot.z = nz;
@@ -754,24 +697,18 @@
                 bot.mesh.position.set(bot.x, 0, bot.z);
                 bot.mesh.rotation.y = angle;
 
-                if (Math.random() < 0.03) bot.strafeDir *= -1;
-
-                if (closestDist < 650 && now - bot.lastAttack > 320) {
+                if (closestDist < 500 && now - bot.lastAttack > 400) {
                     bot.lastAttack = now;
                     let origin = new THREE.Vector3(bot.x, 22, bot.z);
-                    let targetVec = new THREE.Vector3(
-                        targetPos.x + (Math.random() * 16 - 8),
-                        20,
-                        targetPos.z + (Math.random() * 16 - 8)
-                    );
+                    let targetVec = new THREE.Vector3(targetPos.x, 20, targetPos.z);
                     
                     createBulletTracer(origin, targetVec, 0xff0055);
                     playSound('shoot');
 
-                    if (targetObj === "player" && closestDist < 550) {
-                        takeDamage(12, bot.name);
+                    if (targetObj === "player" && closestDist < 450) {
+                        takeDamage(10, bot.name);
                     } else if (targetObj && targetObj.health) {
-                        targetObj.health -= 15;
+                        targetObj.health -= 12;
                         if (targetObj.health <= 0) {
                             bot.kills++;
                             targetObj.deaths++;
@@ -794,15 +731,15 @@
 
     function createBulletTracer(startPos, endPos, colorHex = 0x00ffff) {
         const distance = startPos.distanceTo(endPos);
-        const cylinderGeo = new THREE.CylinderGeometry(0.2, 0.2, distance, 6);
-        const cylinderMat = new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity: 0.9 });
+        const cylinderGeo = new THREE.CylinderGeometry(0.15, 0.15, distance, 4);
+        const cylinderMat = new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity: 0.8 });
         const tracer = new THREE.Mesh(cylinderGeo, cylinderMat);
 
         tracer.position.copy(startPos).clone().lerp(endPos, 0.5);
         tracer.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), endPos.clone().sub(startPos).normalize());
 
         scene.add(tracer);
-        setTimeout(() => scene.remove(tracer), 60);
+        setTimeout(() => scene.remove(tracer), 50);
     }
 
     function takeDamage(amount, attackerName) {
@@ -828,7 +765,6 @@
     function setupSocketListeners() {
         if (!socket) return;
 
-        // إرسال موقعك بانتظام لأي لاعب يدخل معك
         setInterval(() => {
             if (socket && gameMode === "online") {
                 socket.emit('playerMove', { 
@@ -841,7 +777,7 @@
                     kills: myKills
                 });
             }
-        }, 30);
+        }, 33);
 
         socket.on('state', (state) => {
             if (state.players) {
@@ -933,7 +869,7 @@
         const joyStick = document.getElementById('joyStick');
         let touchId = null;
 
-        joyZone.addEventListener('touchstart', (e) => { touchId = e.changedTouches[0].identifier; });
+        joyZone.addEventListener('touchstart', (e) => { touchId = e.changedTouches[0].identifier; }, { passive: true });
         joyZone.addEventListener('touchmove', (e) => {
             for (let t of e.changedTouches) {
                 if (t.identifier === touchId) {
@@ -941,15 +877,15 @@
                     let dx = t.clientX - (rect.left + rect.width / 2);
                     let dy = t.clientY - (rect.top + rect.height / 2);
                     
-                    movement.up = dy < -8;
-                    movement.down = dy > 8;
-                    movement.left = dx < -8;
-                    movement.right = dx > 8;
+                    movement.up = dy < -6;
+                    movement.down = dy > 6;
+                    movement.left = dx < -6;
+                    movement.right = dx > 6;
 
-                    joyStick.style.transform = `translate(${dx*0.3}px, ${dy*0.3}px)`;
+                    joyStick.style.transform = `translate(${dx*0.25}px, ${dy*0.25}px)`;
                 }
             }
-        });
+        }, { passive: true });
 
         const resetJoy = () => {
             movement.up = movement.down = movement.left = movement.right = false;
@@ -957,9 +893,9 @@
         };
 
         joyZone.addEventListener('touchend', resetJoy);
-        document.getElementById('fireBtn').addEventListener('touchstart', performAttack);
-        document.getElementById('reloadBtn').addEventListener('touchstart', reloadWeapon);
-        document.getElementById('jumpBtn').addEventListener('touchstart', performJump);
+        document.getElementById('fireBtn').addEventListener('touchstart', performAttack, { passive: true });
+        document.getElementById('reloadBtn').addEventListener('touchstart', reloadWeapon, { passive: true });
+        document.getElementById('jumpBtn').addEventListener('touchstart', performJump, { passive: true });
     }
 
     function handleFPSMovement() {
@@ -1019,7 +955,6 @@
             playSound('shoot');
         }
 
-        // استخدام Raycasting الدقيق لإصابة الهدف فوراً
         const raycaster = new THREE.Raycaster();
         raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
         raycaster.far = weapon.range;
@@ -1070,11 +1005,6 @@
                 }
             });
         }
-
-        if (fpWeaponGroup) {
-            fpWeaponGroup.position.z += 0.4;
-            setTimeout(() => { fpWeaponGroup.position.z = 0; }, 60);
-        }
     }
 
     function drawMinimap() {
@@ -1083,7 +1013,7 @@
         const ctx = canvas.getContext('2d');
         const cx = canvas.width / 2;
         const cy = canvas.height / 2;
-        const scale = 0.025;
+        const scale = 0.022;
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -1100,14 +1030,14 @@
                 let relX = (b.x - myPlayerPos.x) * scale;
                 let relZ = (b.z - myPlayerPos.y) * scale;
                 ctx.beginPath();
-                ctx.arc(cx + relX, cy + relZ, 3, 0, Math.PI * 2);
+                ctx.arc(cx + relX, cy + relZ, 2.5, 0, Math.PI * 2);
                 ctx.fill();
             }
         });
 
         ctx.fillStyle = '#00ffff';
         ctx.beginPath();
-        ctx.arc(cx, cy, 3.5, 0, Math.PI * 2);
+        ctx.arc(cx, cy, 3, 0, Math.PI * 2);
         ctx.fill();
     }
 
@@ -1135,7 +1065,7 @@
         }
 
         init3D();
-        addChatMessage(`🔥 مرحباً بك ${myPlayerName}! الجولة الأولى بدأت (الهدف: 5 قتلات بالفوز).`, true);
+        addChatMessage(`🔥 مرحباً بك ${myPlayerName}!`, true);
     });
 
     document.addEventListener('keydown', (e) => {
