@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KRUNK-WAR 3D - FPS Enhanced</title>
+    <title>KRUNK-WAR 3D - Ultimate Edition</title>
     <style>
         * { box-sizing: border-box; touch-action: none; -webkit-touch-callout: none; user-select: none; }
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Segoe UI', Tahoma, sans-serif; }
@@ -16,7 +16,7 @@
         }
         .menu-card {
             background: rgba(30, 41, 59, 0.95); padding: 22px; border-radius: 14px;
-            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.85); width: 90%; max-width: 380px; text-align: center; border: 2px solid #64748b;
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.85); width: 90%; max-width: 400px; text-align: center; border: 2px solid #64748b;
         }
         h1 { margin: 0 0 10px 0; font-size: 28px; color: #cbd5e1; font-weight: 900; text-shadow: 2px 2px 4px #000; }
         label { font-size: 11px; color: #94a3b8; display: block; text-align: right; margin-top: 8px; font-weight: bold; }
@@ -27,6 +27,9 @@
         .btn-sec { background: #3b82f6; color: #fff; cursor: pointer; border-bottom: 4px solid #1d4ed8; }
         .btn-join { background: #10b981; color: #000; cursor: pointer; border-bottom: 4px solid #047857; }
         button:active { border-bottom: 0px; transform: translateY(4px); }
+
+        #shareBox { display: none; margin-top: 10px; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 8px; border: 1px dashed #94a3b8; }
+        #shareBox input { font-size: 11px; background: #111; color: #10b981; }
 
         #gameWrapper { display: none; position: relative; width: 100vw; height: 100vh; }
         #crosshair { position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; transform: translate(-50%, -50%); pointer-events: none; z-index: 6; background: #10b981; border-radius: 50%; border: 1px solid #000; }
@@ -57,6 +60,14 @@
             font-size: 14px; font-weight: 900; pointer-events: none; z-index: 5;
         }
 
+        #chatBox {
+            position: absolute; top: 80px; left: 12px; width: 260px; height: 140px;
+            background: rgba(15, 23, 42, 0.6); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
+            display: flex; flex-direction: column; justify-content: space-between; padding: 6px; z-index: 5;
+        }
+        #chatMessages { overflow-y: auto; font-size: 11px; color: #e2e8f0; display: flex; flex-direction: column; gap: 4px; }
+        #chatInput { background: rgba(0,0,0,0.5); border: 1px solid #475569; color: #fff; padding: 4px 8px; font-size: 10px; border-radius: 4px; text-align: left; }
+
         #weaponUI { position: absolute; bottom: 12px; right: 12px; background: rgba(15, 23, 42, 0.85); padding: 6px 10px; border-radius: 8px; border: 2px solid #475569; color: #fff; font-size: 11px; z-index: 4; text-align: center; }
         .weapon-slots { display: flex; gap: 4px; margin-top: 4px; }
         .slot { padding: 4px 8px; background: #1e293b; border: 2px solid #334155; border-radius: 4px; font-size: 10px; color: #fff; cursor: pointer; font-weight: bold; }
@@ -75,6 +86,7 @@
     </style>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
 <body>
 
@@ -82,7 +94,7 @@
     <div class="menu-card">
         <h1>KRUNK-WAR 3D</h1>
         
-        <label>اسمك في اللعبة:</label>
+        <label>اسم اللاعب:</label>
         <input type="text" id="playerName" placeholder="ادخل اسمك" maxlength="10" value="مقاتل">
 
         <label>الجهاز:</label>
@@ -91,7 +103,20 @@
             <option value="phone">📱 هاتف (أزرار لمس)</option>
         </select>
 
-        <button class="btn-main" onclick="start3DGame()">بدء اللعب 🚀</button>
+        <button class="btn-main" onclick="joinPublicMatch()">دخول سيرفر عام 🌐</button>
+        <button class="btn-sec" onclick="createPrivateRoom()">إنشاء غرفة خاصة 🔒</button>
+
+        <div style="margin-top: 10px; border-top: 1px solid #334155; padding-top: 8px;">
+            <label>الانضمام بكود الغرفة:</label>
+            <input type="text" id="joinCodeInput" placeholder="مثال: A1B2C3" style="text-transform: uppercase;">
+            <button class="btn-join" onclick="joinByCode()">انضمام 🚀</button>
+        </div>
+
+        <div id="shareBox">
+            <label style="text-align:center;">كود غرفتك:</label>
+            <input type="text" id="roomCodeDisplay" readonly>
+            <button onclick="copyInviteLink()" style="font-size:10px; padding:5px; background:#64748b; color:#fff; font-weight:bold;">نسخ الرابط 📋</button>
+        </div>
     </div>
 </div>
 
@@ -110,6 +135,13 @@
     </div>
 
     <div id="weapon3DAmmoUI">AMMO: 10</div>
+
+    <div id="chatBox">
+        <div id="chatMessages">
+            <div><b style="color:#38bdf8;">[النظام]:</b> مرحباً بك! البيوت والأثاث والنوافذ مفردة وعشوائية بشكل كامل.</div>
+        </div>
+        <input type="text" id="chatInput" placeholder="اكتب للدردشة ثم اضغط Enter..." maxlength="40">
+    </div>
 
     <div id="weaponUI">
         <div id="currentWeaponText">بندقية قنص 🎯</div>
@@ -133,6 +165,9 @@
 </div>
 
 <script>
+    let peer, conn;
+    let roomCode = "";
+
     let scene, camera, renderer;
     let myPos = { x: 2500, y: 35, z: 2500 };
     let playerYaw = 0, playerPitch = 0;
@@ -159,6 +194,35 @@
 
     let colliders = [];
     let floorsColliders = [];
+    let stairsColliders = [];
+
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playSound(type) {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (type === 'shoot') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.15);
+        } else if (type === 'jump') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        }
+    }
 
     const WEAPONS = {
         1: { name: "سكين تكتيكي 🗡️", cd: 200, damage: 100, maxAmmo: Infinity, currentAmmo: Infinity, isMelee: true },
@@ -167,12 +231,72 @@
     };
     let currentWeaponId = 3;
 
+    function createPrivateRoom() {
+        roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+        peer = new Peer("KRUNK_" + roomCode);
+        peer.on('open', () => {
+            document.getElementById('roomCodeDisplay').value = roomCode;
+            document.getElementById('shareBox').style.display = 'block';
+            start3DGame();
+        });
+    }
+
+    function joinByCode() {
+        let code = document.getElementById('joinCodeInput').value.trim().toUpperCase();
+        if (!code) return;
+        peer = new Peer();
+        peer.on('open', () => {
+            conn = peer.connect("KRUNK_" + code);
+            start3DGame();
+        });
+    }
+
+    function joinPublicMatch() {
+        document.getElementById('joinCodeInput').value = "PUBLIC123";
+        joinByCode();
+    }
+
+    function copyInviteLink() {
+        const link = `${window.location.origin}${window.location.pathname}?room=${roomCode}`;
+        navigator.clipboard.writeText(link);
+        alert("تم نسخ رابط الدعوة!");
+    }
+
     function start3DGame() {
         selectedDevice = document.getElementById('deviceSelect').value;
         document.getElementById('mainMenu').style.display = 'none';
         document.getElementById('gameWrapper').style.display = 'block';
 
         init3D();
+        setupChat();
+    }
+
+    function setupChat() {
+        const input = document.getElementById('chatInput');
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Enter') {
+                if (document.activeElement === input) {
+                    let msg = input.value.trim();
+                    if (msg) {
+                        const name = document.getElementById('playerName').value || "مقاتل";
+                        addChatMessage(name, msg);
+                        input.value = '';
+                    }
+                    input.blur();
+                    if (selectedDevice === 'pc') document.body.requestPointerLock();
+                } else {
+                    input.focus();
+                }
+            }
+        });
+    }
+
+    function addChatMessage(sender, msg) {
+        const chatMsgs = document.getElementById('chatMessages');
+        const div = document.createElement('div');
+        div.innerHTML = `<b style="color:#10b981;">${sender}:</b> ${msg}`;
+        chatMsgs.appendChild(div);
+        chatMsgs.scrollTop = chatMsgs.scrollHeight;
     }
 
     function init3D() {
@@ -199,7 +323,8 @@
         floor.position.set(2500, 0, 2500);
         scene.add(floor);
 
-        buildHousesWithClearDoors();
+        buildRandom3FloorHouses();
+        buildAbundantObstacles();
 
         fpWeaponGroup = new THREE.Group();
         camera.add(fpWeaponGroup);
@@ -208,12 +333,17 @@
         buildAccurateWeapons();
 
         window.addEventListener('keydown', (e) => {
+            if (document.activeElement === document.getElementById('chatInput')) return;
             if (e.code === 'KeyW') keys.w = true;
             if (e.code === 'KeyS') keys.s = true;
             if (e.code === 'KeyA') keys.a = true;
             if (e.code === 'KeyD') keys.d = true;
             if (e.code === 'ShiftLeft') keys.shift = true;
-            if (e.code === 'Space' && isGrounded) { velocityY = jumpPower; isGrounded = false; }
+            if (e.code === 'Space' && isGrounded) { 
+                velocityY = jumpPower; 
+                isGrounded = false; 
+                playSound('jump');
+            }
             if (e.code === 'KeyR') reloadWeapon();
 
             if (e.code === 'Digit1') selectWeapon(1);
@@ -233,7 +363,11 @@
             document.getElementById('touchUI').style.display = 'flex';
             setupTouch();
         } else {
-            window.addEventListener('click', () => document.body.requestPointerLock());
+            window.addEventListener('click', () => {
+                if (document.activeElement !== document.getElementById('chatInput')) {
+                    document.body.requestPointerLock();
+                }
+            });
             window.addEventListener('mousemove', (e) => {
                 if (document.pointerLockElement === document.body) {
                     playerYaw -= e.movementX * 0.0022;
@@ -257,36 +391,47 @@
         animate();
     }
 
-    // بناء البيوت مع مداخل أبواب مفرغة تماماً لضمان الدخول
-    function buildHousesWithClearDoors() {
-        const houseColors = [0x3a4750, 0x475569, 0x5c3a21, 0x2d4a3e, 0x3b3345];
+    // إنشاء بيوت عشوائية بألوان، سلالم، أثاث ونوافذ عشوائية
+    function buildRandom3FloorHouses() {
+        const houseColors = [0x3a4750, 0x475569, 0x5c3a21, 0x2d4a3e, 0x3b3345, 0x1f2937, 0x64748b];
+        const furnitureMat = new THREE.MeshLambertMaterial({ color: 0x78350f });
+        const stairMat = new THREE.MeshLambertMaterial({ color: 0x475569 });
 
-        for (let i = 0; i < 9; i++) {
-            let hx = 800 + (i % 3) * 1400;
-            let hz = 800 + Math.floor(i / 3) * 1400;
+        for (let i = 0; i < 12; i++) {
+            let hx = 600 + Math.random() * 3800;
+            let hz = 600 + Math.random() * 3800;
 
             let width = 360, depth = 360;
             let floorHeight = 70;
             let totalHeight = floorHeight * 3;
 
-            let wallMat = new THREE.MeshLambertMaterial({ color: houseColors[i % houseColors.length] });
+            let wallMat = new THREE.MeshLambertMaterial({ color: houseColors[Math.floor(Math.random() * houseColors.length)] });
 
-            // 1. الجدار الأيسر والأيمن والخلفي
+            // الجدران الأساسية
             createWall(hx - width/2, totalHeight/2, hz, 14, totalHeight, depth, wallMat);
             createWall(hx + width/2, totalHeight/2, hz, 14, totalHeight, depth, wallMat);
             createWall(hx, totalHeight/2, hz - depth/2, width, totalHeight, 14, wallMat);
 
-            // 2. الجدار الأمامي (مع ترك فتحة باب واسعة في المنتصف)
-            let sideWallWidth = (width - 120) / 2; // ترك مدخل بعرض 120
+            // الجدار الأمامي مع فتحة الباب في المنتصف
+            let sideWallWidth = (width - 120) / 2;
             createWall(hx - width/2 + sideWallWidth/2, totalHeight/2, hz + depth/2, sideWallWidth, totalHeight, 14, wallMat);
             createWall(hx + width/2 - sideWallWidth/2, totalHeight/2, hz + depth/2, sideWallWidth, totalHeight, 14, wallMat);
 
-            // أعلى الباب بالدور الأرضي
             let topDoorWall = new THREE.Mesh(new THREE.BoxGeometry(120, 20, 14), wallMat);
             topDoorWall.position.set(hx, 60, hz + depth/2);
             scene.add(topDoorWall);
 
-            // 3. الأرضيات الداخلية للأدوار العلوي مع فتحات للسلالم
+            // إضافة نوافذ عشوائية الشكل والموقع على الأدوار
+            for (let f = 1; f <= 2; f++) {
+                if (Math.random() > 0.3) {
+                    let winOffset = (Math.random() - 0.5) * 160;
+                    let windowMesh = new THREE.Mesh(new THREE.BoxGeometry(60, 35, 18), new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.4 }));
+                    windowMesh.position.set(hx + winOffset, f * floorHeight + 35, hz + depth/2);
+                    scene.add(windowMesh);
+                }
+            }
+
+            // إضافة أدوار وسلالم داخلية
             for (let f = 1; f <= 2; f++) {
                 let fy = f * floorHeight;
                 let floorMesh = new THREE.Mesh(new THREE.BoxGeometry(width - 20, 6, depth - 20), new THREE.MeshLambertMaterial({ color: 0x1f2937 }));
@@ -294,6 +439,51 @@
                 scene.add(floorMesh);
 
                 floorsColliders.push({ x: hx, z: hz, w: width - 20, d: depth - 20, heightY: fy + baseEyeHeight });
+
+                // إنشاء الدرج للصعود للأدوار العلوي
+                for (let s = 0; s < 15; s++) {
+                    const step = new THREE.Mesh(new THREE.BoxGeometry(60, 5, 20), stairMat);
+                    let sx = (f === 1) ? (hx - width/3) : (hx + width/3);
+                    let sy = (f - 1) * floorHeight + s * 4.6 + 3;
+                    let sz = (hz - depth/3) + s * 11;
+                    step.position.set(sx, sy, sz);
+                    scene.add(step);
+
+                    stairsColliders.push({ x: sx, z: sz, y: sy + baseEyeHeight, radius: 30 });
+                }
+            }
+
+            // أثاث عشوائي داخل البيوت
+            addFurniture(hx - 50, 15, hz - 50, 50, 30, 70, furnitureMat);
+            addFurniture(hx + 60, 70 + 15, hz + 40, 60, 30, 40, furnitureMat);
+        }
+    }
+
+    function addFurniture(x, y, z, w, h, d, mat) {
+        let obj = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+        obj.position.set(x, y, z);
+        scene.add(obj);
+        colliders.push({ x: x, z: z, w: w, d: d });
+    }
+
+    function buildAbundantObstacles() {
+        const crateMat = new THREE.MeshLambertMaterial({ color: 0x3f2e21 });
+        const concreteMat = new THREE.MeshLambertMaterial({ color: 0x64748b });
+
+        for (let i = 0; i < 60; i++) {
+            let cx = 200 + Math.random() * 4600;
+            let cz = 200 + Math.random() * 4600;
+
+            if (i % 2 === 0) {
+                let crate = new THREE.Mesh(new THREE.BoxGeometry(60, 60, 60), crateMat);
+                crate.position.set(cx, 30, cz);
+                scene.add(crate);
+                colliders.push({ x: cx, z: cz, w: 60, d: 60 });
+            } else {
+                let barrier = new THREE.Mesh(new THREE.BoxGeometry(120, 55, 30), concreteMat);
+                barrier.position.set(cx, 27.5, cz);
+                scene.add(barrier);
+                colliders.push({ x: cx, z: cz, w: 120, d: 30 });
             }
         }
     }
@@ -305,24 +495,20 @@
         colliders.push({ x: x, z: z, w: w, d: d });
     }
 
-    // بناء مجسمات الأسلحة بدقة لتطابق الصور المرفقة
     function buildAccurateWeapons() {
-        // المواد والألوان
-        const greenMat = new THREE.MeshLambertMaterial({ color: 0x556b2f }); // زيتوني للقناصة
-        const darkMetalMat = new THREE.MeshLambertMaterial({ color: 0x111111 }); // معدن أسود
-        const goldMat = new THREE.MeshLambertMaterial({ color: 0xd4af37 }); // ذهبي للمسدس
-        const woodGripMat = new THREE.MeshLambertMaterial({ color: 0x5c2c16 }); // خشب محروق
-        const steelBladeMat = new THREE.MeshLambertMaterial({ color: 0xd1d5db }); // شفرة السكين
-        const greenKnifeGripMat = new THREE.MeshLambertMaterial({ color: 0x059669 }); // مقبض سكين أخضر
+        const greenMat = new THREE.MeshLambertMaterial({ color: 0x556b2f });
+        const darkMetalMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
+        const goldMat = new THREE.MeshLambertMaterial({ color: 0xd4af37 });
+        const woodGripMat = new THREE.MeshLambertMaterial({ color: 0x5c2c16 });
+        const steelBladeMat = new THREE.MeshLambertMaterial({ color: 0xd1d5db });
+        const greenKnifeGripMat = new THREE.MeshLambertMaterial({ color: 0x059669 });
 
-        // --- 1. السكين (طابق image_4eb292.png) ---
+        // 1. السكين
         currentKnifeMesh = new THREE.Group();
         let blade = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.25, 1.2), steelBladeMat);
         blade.position.set(0, 0, -0.6);
-
         let guard = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.35, 0.1), steelBladeMat);
         guard.position.set(0, 0, -0.02);
-
         let grip = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.6, 12), greenKnifeGripMat);
         grip.rotation.x = Math.PI / 2;
         grip.position.set(0, -0.02, 0.3);
@@ -331,15 +517,13 @@
         currentKnifeMesh.position.set(0.35, -0.35, -0.8);
         fpWeaponGroup.add(currentKnifeMesh);
 
-        // --- 2. المسدس الذهبي بمقبض خشبي (طابق image_4ed4fc.png) ---
+        // 2. المسدس
         currentPistolMesh = new THREE.Group();
         let pSlide = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.22, 1.0), goldMat);
         pSlide.position.set(0, 0.1, -0.3);
-
         let pGrip = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.55, 0.3), woodGripMat);
         pGrip.rotation.x = -0.2;
         pGrip.position.set(0, -0.22, 0.05);
-
         let pBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.4, 12), darkMetalMat);
         pBarrel.rotation.x = Math.PI / 2;
         pBarrel.position.set(0, 0.12, -0.8);
@@ -349,30 +533,18 @@
         currentPistolMesh.visible = false;
         fpWeaponGroup.add(currentPistolMesh);
 
-        // --- 3. قناصة باللون الزيتوني والمنظار (طابق image_4ed49e.png) ---
+        // 3. القناصة
         currentRifleMesh = new THREE.Group();
-        
-        // الهيكل الزيتوني الرئيسي
         let rBody = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.32, 2.2), greenMat);
         rBody.position.set(0, 0, -0.6);
-
-        // الماسورة الطويلة
         let rBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.8, 12), darkMetalMat);
         rBarrel.rotation.x = Math.PI / 2;
         rBarrel.position.set(0, 0.02, -2.0);
-
-        // المنظار (Scope) العلوي
         let rScope = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.9, 16), darkMetalMat);
         rScope.rotation.x = Math.PI / 2;
         rScope.position.set(0, 0.28, -0.6);
 
-        let rScopeLens = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.085, 0.02, 16), new THREE.MeshBasicMaterial({ color: 0x1e3a8a }));
-        rScopeLens.rotation.x = Math.PI / 2;
-        rScopeLens.position.set(0, 0.28, -1.05);
-
-        currentRifleMesh.add(rBody, rBarrel, rScope, rScopeLens);
-        
-        // ضبط زاوية القناصة والمنظور كما بالصورة بالضبط
+        currentRifleMesh.add(rBody, rBarrel, rScope);
         currentRifleMesh.position.set(0.2, -0.3, -0.8);
         currentRifleMesh.rotation.set(0.05, -0.05, 0);
         currentRifleMesh.visible = false;
@@ -475,6 +647,14 @@
             }
         }
 
+        for (let st of stairsColliders) {
+            let dx = myPos.x - st.x;
+            let dz = myPos.z - st.z;
+            if (Math.sqrt(dx * dx + dz * dz) < st.radius) {
+                if (st.y > floorHeight) floorHeight = st.y;
+            }
+        }
+
         velocityY += gravity;
         myPos.y += velocityY;
 
@@ -484,7 +664,6 @@
             isGrounded = true;
         }
 
-        // انيميشن ارتجاج السلاح عند المشي والجري
         if (isMoving && isGrounded && !isAiming) {
             walkBobble += isSprinting ? 0.22 : 0.12;
             fpWeaponGroup.position.y = Math.sin(walkBobble) * (isSprinting ? 0.06 : 0.03);
@@ -493,13 +672,11 @@
             fpWeaponGroup.position.set(0, 0, 0);
         }
 
-        // انيميشن ارتداد السلاح عند الإطلاق (Recoil)
         if (recoilOffset > 0) {
             recoilOffset -= 0.05;
             fpWeaponGroup.position.z = recoilOffset;
         }
 
-        // انيميشن حركة السكين المشابهة لألعاب الـ FPS
         if (isKnifeSwinging) {
             knifeAnimTime += 0.22;
             if (knifeAttackType === 0) {
@@ -565,7 +742,7 @@
             document.getElementById('sprintBtn').style.backgroundColor = touchMove.isSprint ? '#10b981' : '#f59e0b';
         });
         document.getElementById('jumpBtn').addEventListener('touchstart', () => {
-            if (isGrounded) { velocityY = jumpPower; isGrounded = false; }
+            if (isGrounded) { velocityY = jumpPower; isGrounded = false; playSound('jump'); }
         });
     }
 
@@ -589,7 +766,8 @@
         weapon.currentAmmo--;
         updateAmmoUI();
 
-        recoilOffset = 0.2; // تأثير الارتداد
+        playSound('shoot');
+        recoilOffset = 0.2;
         playerPitch += 0.01;
     }
 </script>
