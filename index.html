@@ -3,72 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KRUNK-WAR 3D - Fixed Edition</title>
+    <title>KRUNK-WAR 3D - Full Physics Edition</title>
     <style>
         * { box-sizing: border-box; touch-action: none; -webkit-touch-callout: none; user-select: none; }
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Segoe UI', Tahoma, sans-serif; }
         
         #mainMenu {
             position: absolute; width: 100%; height: 100%;
-            background: linear-gradient(135deg, #111425 0%, #050608 100%);
+            background: linear-gradient(135deg, #0f172a 0%, #020617 100%);
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             z-index: 10; color: #fff;
         }
         .menu-card {
-            background: rgba(20, 24, 38, 0.95); padding: 22px; border-radius: 14px;
-            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.85); width: 90%; max-width: 380px; text-align: center; border: 2px solid #f39c12;
+            background: rgba(30, 41, 59, 0.95); padding: 22px; border-radius: 14px;
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.85); width: 90%; max-width: 380px; text-align: center; border: 2px solid #f59e0b;
         }
-        h1 { margin: 0 0 10px 0; font-size: 28px; color: #f1c40f; font-weight: 900; text-shadow: 2px 2px 4px #000; }
-        label { font-size: 11px; color: #f39c12; display: block; text-align: right; margin-top: 8px; font-weight: bold; }
+        h1 { margin: 0 0 10px 0; font-size: 28px; color: #fbbf24; font-weight: 900; text-shadow: 2px 2px 4px #000; }
+        label { font-size: 11px; color: #f59e0b; display: block; text-align: right; margin-top: 8px; font-weight: bold; }
         input, button, select { width: 100%; padding: 10px; margin: 4px 0; border-radius: 6px; border: none; font-size: 13px; font-weight: bold; }
-        input, select { background: #1c2733; color: #fff; text-align: center; border: 2px solid #2c3e50; }
+        input, select { background: #0f172a; color: #fff; text-align: center; border: 2px solid #334155; }
         
-        .btn-main { background: #f39c12; color: #000; cursor: pointer; border-bottom: 4px solid #d35400; margin-top: 10px; }
-        .btn-sec { background: #3498db; color: #fff; cursor: pointer; border-bottom: 4px solid #2980b9; }
-        .btn-join { background: #2ecc71; color: #000; cursor: pointer; border-bottom: 4px solid #27ae60; }
+        .btn-main { background: #f59e0b; color: #000; cursor: pointer; border-bottom: 4px solid #b45309; margin-top: 10px; }
+        .btn-sec { background: #3b82f6; color: #fff; cursor: pointer; border-bottom: 4px solid #1d4ed8; }
+        .btn-join { background: #10b981; color: #000; cursor: pointer; border-bottom: 4px solid #047857; }
         button:active { border-bottom: 0px; transform: translateY(4px); }
 
-        .insta-link { display: inline-block; margin-top: 10px; color: #e1306c; text-decoration: none; font-weight: bold; font-size: 12px; }
-        #shareBox { display: none; margin-top: 10px; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 8px; border: 1px dashed #f1c40f; }
-        #shareBox input { font-size: 11px; background: #111; color: #2ecc71; }
+        .insta-link { display: inline-block; margin-top: 10px; color: #ec4899; text-decoration: none; font-weight: bold; font-size: 12px; }
+        #shareBox { display: none; margin-top: 10px; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 8px; border: 1px dashed #fbbf24; }
+        #shareBox input { font-size: 11px; background: #111; color: #10b981; }
 
         #gameWrapper { display: none; position: relative; width: 100vw; height: 100vh; }
-        #crosshair { position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; transform: translate(-50%, -50%); pointer-events: none; z-index: 6; background: #2ecc71; border-radius: 50%; border: 1px solid #000; }
+        #crosshair { position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; transform: translate(-50%, -50%); pointer-events: none; z-index: 6; background: #10b981; border-radius: 50%; border: 1px solid #000; }
         
         #scopeOverlay {
             position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
             pointer-events: none; z-index: 9; display: none;
             background: radial-gradient(circle at center, transparent 30%, rgba(0,0,0,0.95) 35%, #000 100%);
         }
-        #scopeOverlay::before, #scopeOverlay::after { content: ''; position: absolute; background: rgba(255, 0, 0, 0.7); }
+        #scopeOverlay::before, #scopeOverlay::after { content: ''; position: absolute; background: rgba(239, 68, 68, 0.7); }
         #scopeOverlay::before { top: 50%; left: 0; right: 0; height: 1px; }
         #scopeOverlay::after { left: 50%; top: 0; bottom: 0; width: 1px; }
 
         #hitmarker { position: absolute; top: 50%; left: 50%; width: 18px; height: 18px; transform: translate(-50%, -50%); pointer-events: none; z-index: 7; opacity: 0; }
-        #hitmarker::before, #hitmarker::after { content: ''; position: absolute; background: #f1c40f; }
+        #hitmarker::before, #hitmarker::after { content: ''; position: absolute; background: #fbbf24; }
         #hitmarker::before { top: 8px; left: 0; width: 18px; height: 2px; transform: rotate(45deg); }
         #hitmarker::after { top: 8px; left: 0; width: 18px; height: 2px; transform: rotate(-45deg); }
 
-        #healthUI { position: absolute; top: 12px; left: 12px; background: rgba(0, 0, 0, 0.85); padding: 8px 12px; border-radius: 8px; border: 2px solid #f1c40f; color: #fff; font-size: 11px; z-index: 4; width: 160px; }
-        .hp-bar-container { width: 100%; background: #333; height: 10px; border-radius: 5px; margin-top: 4px; overflow: hidden; }
-        #hpBarFill { width: 100%; background: #2ecc71; height: 100%; transition: width 0.2s, background-color 0.2s; }
-        #ammoDisplay { margin-top: 4px; font-size: 11px; color: #f1c40f; display: flex; justify-content: space-between; }
-        #reloadNotice { color: #e74c3c; font-weight: bold; display: none; font-size: 10px; text-align: center; }
+        #healthUI { position: absolute; top: 12px; left: 12px; background: rgba(15, 23, 42, 0.85); padding: 8px 12px; border-radius: 8px; border: 2px solid #f59e0b; color: #fff; font-size: 11px; z-index: 4; width: 160px; }
+        .hp-bar-container { width: 100%; background: #334155; height: 10px; border-radius: 5px; margin-top: 4px; overflow: hidden; }
+        #hpBarFill { width: 100%; background: #10b981; height: 100%; transition: width 0.2s, background-color 0.2s; }
+        #ammoDisplay { margin-top: 4px; font-size: 11px; color: #fbbf24; display: flex; justify-content: space-between; }
+        #reloadNotice { color: #ef4444; font-weight: bold; display: none; font-size: 10px; text-align: center; }
 
-        #weaponUI { position: absolute; bottom: 12px; right: 12px; background: rgba(0, 0, 0, 0.85); padding: 6px 10px; border-radius: 8px; border: 2px solid #f39c12; color: #fff; font-size: 11px; z-index: 4; text-align: center; }
+        #weaponUI { position: absolute; bottom: 12px; right: 12px; background: rgba(15, 23, 42, 0.85); padding: 6px 10px; border-radius: 8px; border: 2px solid #f59e0b; color: #fff; font-size: 11px; z-index: 4; text-align: center; }
         .weapon-slots { display: flex; gap: 4px; margin-top: 4px; }
-        .slot { padding: 4px 8px; background: #1c2733; border: 2px solid #2c3e50; border-radius: 4px; font-size: 10px; color: #fff; cursor: pointer; font-weight: bold; }
-        .slot.active { border-color: #f1c40f; background: #f39c12; color: #000; }
+        .slot { padding: 4px 8px; background: #1e293b; border: 2px solid #334155; border-radius: 4px; font-size: 10px; color: #fff; cursor: pointer; font-weight: bold; }
+        .slot.active { border-color: #fbbf24; background: #f59e0b; color: #000; }
 
         .touch-controls { position: absolute; bottom: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; align-items: flex-end; pointer-events: none; z-index: 5; }
-        .joystick-zone { width: 90px; height: 90px; border: 2px dashed rgba(241, 196, 15, 0.6); border-radius: 50%; display: flex; justify-content: center; align-items: center; pointer-events: auto; background: rgba(0,0,0,0.3); position: relative; }
-        .joystick-stick { width: 35px; height: 35px; background: #f39c12; border-radius: 50%; position: absolute; }
+        .joystick-zone { width: 90px; height: 90px; border: 2px dashed rgba(251, 191, 36, 0.6); border-radius: 50%; display: flex; justify-content: center; align-items: center; pointer-events: auto; background: rgba(0,0,0,0.3); position: relative; }
+        .joystick-stick { width: 35px; height: 35px; background: #f59e0b; border-radius: 50%; position: absolute; }
         .touch-action-btns { display: flex; gap: 6px; pointer-events: auto; flex-wrap: wrap; max-width: 180px; justify-content: flex-end; }
         .action-btn { width: 44px; height: 44px; border-radius: 8px; display: flex; justify-content: center; align-items: center; color: white; font-weight: 900; font-size: 10px; border: 2px solid #000; }
-        .fire-btn { background: #e74c3c; width: 52px; height: 52px; font-size: 11px; }
-        .ads-btn { background: #8e44ad; }
-        .jump-btn { background: #2ecc71; }
-        .reload-btn { background: #3498db; }
+        .fire-btn { background: #ef4444; width: 52px; height: 52px; font-size: 11px; }
+        .ads-btn { background: #8b5cf6; }
+        .jump-btn { background: #10b981; }
+        .reload-btn { background: #3b82f6; }
     </style>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -92,7 +92,7 @@
         <button class="btn-main" onclick="joinPublicMatch()">دخول جولة عامة 🌐</button>
         <button class="btn-sec" onclick="createPrivateRoom()">إنشاء غرفة خاصة 🔒</button>
 
-        <div style="margin-top: 10px; border-top: 1px solid #333; padding-top: 8px;">
+        <div style="margin-top: 10px; border-top: 1px solid #334155; padding-top: 8px;">
             <label>أو ادخل كود الغرفة مباشرة:</label>
             <input type="text" id="joinCodeInput" placeholder="مثال: A1B2C3" style="text-transform: uppercase;">
             <button class="btn-join" onclick="joinByCode()">انضمام بالكود 🚀</button>
@@ -101,7 +101,7 @@
         <div id="shareBox">
             <label style="text-align:center;">كود الغرفة الخاص بك:</label>
             <input type="text" id="roomCodeDisplay" readonly>
-            <button onclick="copyInviteLink()" style="font-size:10px; padding:5px; background:#f1c40f; color:#000; font-weight:bold;">نسخ رابط الدعوة المباشر 📋</button>
+            <button onclick="copyInviteLink()" style="font-size:10px; padding:5px; background:#fbbf24; color:#000; font-weight:bold;">نسخ رابط الدعوة المباشر 📋</button>
         </div>
 
         <a href="https://www.instagram.com/algerian_aizen/" target="_blank" class="insta-link">📸 @algerian_aizen</a>
@@ -160,7 +160,6 @@
     let velocityY = 0, isGrounded = true;
     let highestY = 35;
     
-    // تعديل الفيزياء لسرعة أبطأ وقفزة أستقرارية
     const gravity = -0.4;
     const jumpPower = 6.8; 
     const moveSpeed = 3.2;
@@ -173,7 +172,9 @@
     let knifeAnimTime = 0, isKnifeSwinging = false;
     let walkBobble = 0;
 
-    let stairsColliders = []; // مصفوفة لحساب التصادم مع السلالم
+    let colliders = []; // مصفوفة جدران وعوائق التصادم
+    let stairsColliders = [];
+    let floorsColliders = [];
 
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -250,8 +251,8 @@
 
     function init3D() {
         scene = new THREE.Scene();
-        scene.background = new THREE.Color('#1e293b');
-        scene.fog = new THREE.FogExp2('#1e293b', 0.0002);
+        scene.background = new THREE.Color('#38bdf8'); // السماء الملونة المشرقة
+        scene.fog = new THREE.FogExp2('#38bdf8', 0.00015);
 
         camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 4000);
         camera.rotation.order = 'YXZ';
@@ -260,15 +261,15 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.getElementById('gameWrapper').appendChild(renderer.domElement);
 
-        const ambLight = new THREE.AmbientLight(0xffffff, 0.85);
+        const ambLight = new THREE.AmbientLight(0xffffff, 0.9);
         scene.add(ambLight);
 
         const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
         dirLight.position.set(1000, 2000, 1000);
         scene.add(dirLight);
 
-        // أرضية الخريطة
-        const floor = new THREE.Mesh(new THREE.PlaneGeometry(5000, 5000), new THREE.MeshLambertMaterial({ color: 0x334155 }));
+        // أرضية الخريطة الملونة
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(5000, 5000), new THREE.MeshLambertMaterial({ color: 0x16a34a }));
         floor.rotation.x = -Math.PI / 2;
         floor.position.set(2500, 0, 2500);
         scene.add(floor);
@@ -282,12 +283,11 @@
 
         buildDetailedWeapons();
 
-        const flashMat = new THREE.MeshBasicMaterial({ color: 0xffd700, transparent: true, opacity: 0 });
+        const flashMat = new THREE.MeshBasicMaterial({ color: 0xfacc15, transparent: true, opacity: 0 });
         muzzleFlashMesh = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), flashMat);
         muzzleFlashMesh.position.set(0.5, -0.4, -2.5);
         fpWeaponGroup.add(muzzleFlashMesh);
 
-        // ضبط مفاتيح التحكم
         window.addEventListener('keydown', (e) => {
             if (e.code === 'KeyW') keys.w = true;
             if (e.code === 'KeyS') keys.s = true;
@@ -334,36 +334,61 @@
         animate();
     }
 
-    // بناء بيوت ضخمة بفيزياء وسلالام ممتازة
+    // بناء البيوت مع الألوان والجدران الكاملة ونافذة القفز
     function buildMapAndBigHouses() {
-        const wallMat = new THREE.MeshLambertMaterial({ color: 0x475569 });
-        const floor2Mat = new THREE.MeshLambertMaterial({ color: 0x64748b });
-        const stairMat = new THREE.MeshLambertMaterial({ color: 0xd97706 });
+        const colors = [0x2563eb, 0xd97706, 0xd946ef, 0x0284c7, 0x059669];
+        const floor2Mat = new THREE.MeshLambertMaterial({ color: 0x475569 });
+        const stairMat = new THREE.MeshLambertMaterial({ color: 0xf59e0b });
 
         for (let i = 0; i < 9; i++) {
             let hx = 800 + (i % 3) * 1400;
             let hz = 800 + Math.floor(i / 3) * 1400;
 
-            // أبعاد كبيرة للمنازل
             let width = 280, height = 140, depth = 280;
+            let wallMat = new THREE.MeshLambertMaterial({ color: colors[i % colors.length] });
 
-            // الجدران الجانبية
-            const wLeft = new THREE.Mesh(new THREE.BoxGeometry(12, height, depth), wallMat);
+            // 1. الجدران الجانبية والخلفية
+            let wLeft = new THREE.Mesh(new THREE.BoxGeometry(12, height, depth), wallMat);
             wLeft.position.set(hx - width/2, height/2, hz);
 
-            const wRight = new THREE.Mesh(new THREE.BoxGeometry(12, height, depth), wallMat);
+            let wRight = new THREE.Mesh(new THREE.BoxGeometry(12, height, depth), wallMat);
             wRight.position.set(hx + width/2, height/2, hz);
 
-            const wBack = new THREE.Mesh(new THREE.BoxGeometry(width, height, 12), wallMat);
+            let wBack = new THREE.Mesh(new THREE.BoxGeometry(width, height, 12), wallMat);
             wBack.position.set(hx, height/2, hz - depth/2);
 
-            // أرضية الدور الثاني
-            const floor2 = new THREE.Mesh(new THREE.BoxGeometry(width - 20, 8, depth - 20), floor2Mat);
+            scene.add(wLeft, wRight, wBack);
+            colliders.push({ x: hx - width/2, z: hz, w: 12, d: depth });
+            colliders.push({ x: hx + width/2, z: hz, w: 12, d: depth });
+            colliders.push({ x: hx, z: hz - depth/2, w: width, d: 12 });
+
+            // 2. الجدار الأمامي مع باب ونافذة قفز صغيرة بالدور الثاني
+            let frontLeft = new THREE.Mesh(new THREE.BoxGeometry(100, height, 12), wallMat);
+            frontLeft.position.set(hx - 90, height/2, hz + depth/2);
+
+            let frontRight = new THREE.Mesh(new THREE.BoxGeometry(100, height, 12), wallMat);
+            frontRight.position.set(hx + 90, height/2, hz + depth/2);
+
+            // جدار النافذة العلوي والسفلي (تترك فتحة نافذة قفز صغيرة تتسع لشخص)
+            let windowBottom = new THREE.Mesh(new THREE.BoxGeometry(80, 70, 12), wallMat);
+            windowBottom.position.set(hx, 35, hz + depth/2);
+
+            let windowTop = new THREE.Mesh(new THREE.BoxGeometry(80, 30, 12), wallMat);
+            windowTop.position.set(hx, 125, hz + depth/2);
+
+            scene.add(frontLeft, frontRight, windowBottom, windowTop);
+            colliders.push({ x: hx - 90, z: hz + depth/2, w: 100, d: 12 });
+            colliders.push({ x: hx + 90, z: hz + depth/2, w: 100, d: 12 });
+            colliders.push({ x: hx, z: hz + depth/2, w: 80, d: 12, maxPassY: 105, minPassY: 70 }); // السماح بالعبور فقط عبر النافذة
+
+            // 3. أرضية الدور الثاني المحمية من السقوط
+            let floor2 = new THREE.Mesh(new THREE.BoxGeometry(width - 20, 8, depth - 20), floor2Mat);
             floor2.position.set(hx, 70, hz);
+            scene.add(floor2);
 
-            scene.add(wLeft, wRight, wBack, floor2);
+            floorsColliders.push({ x: hx, z: hz, w: width - 20, d: depth - 20, heightY: 70 + baseEyeHeight });
 
-            // السلالم للصعود المريح
+            // 4. السلالم للصعود السلس
             let stepsCount = 18;
             for (let s = 0; s < stepsCount; s++) {
                 const step = new THREE.Mesh(new THREE.BoxGeometry(60, 6, 20), stairMat);
@@ -378,22 +403,20 @@
         }
     }
 
-    // بناء عوائق خارجية وصناديق
+    // بناء العوائق الخارجية الملونة
     function buildObstacles() {
-        const crateMat = new THREE.MeshLambertMaterial({ color: 0xb45309 });
-        const barrierMat = new THREE.MeshLambertMaterial({ color: 0x94a3b8 });
+        const crateColors = [0xb45309, 0xd97706, 0x0284c7, 0x475569];
 
-        for (let i = 0; i < 35; i++) {
+        for (let i = 0; i < 40; i++) {
             let cx = 300 + Math.random() * 4400;
             let cz = 300 + Math.random() * 4400;
 
-            let crate = new THREE.Mesh(new THREE.BoxGeometry(35, 35, 35), crateMat);
-            crate.position.set(cx, 17.5, cz);
+            let mat = new THREE.MeshLambertMaterial({ color: crateColors[i % crateColors.length] });
+            let crate = new THREE.Mesh(new THREE.BoxGeometry(40, 40, 40), mat);
+            crate.position.set(cx, 20, cz);
             scene.add(crate);
 
-            let barrier = new THREE.Mesh(new THREE.BoxGeometry(80, 25, 20), barrierMat);
-            barrier.position.set(cx + 40, 12.5, cz + 40);
-            scene.add(barrier);
+            colliders.push({ x: cx, z: cz, w: 40, d: 40 });
         }
     }
 
@@ -479,24 +502,39 @@
         document.getElementById('hpValue').innerText = Math.round(playerHP);
         const fill = document.getElementById('hpBarFill');
         fill.style.width = playerHP + '%';
-        fill.style.backgroundColor = playerHP < 35 ? '#e74c3c' : '#2ecc71';
+        fill.style.backgroundColor = playerHP < 35 ? '#ef4444' : '#10b981';
+    }
+
+    // نظام فحص التصادم مع الجدران والعوائق
+    function checkWallCollision(nextX, nextZ) {
+        const playerRadius = 12;
+        for (let c of colliders) {
+            // التحقق إذا كان اللاعب ضمن النافذة
+            if (c.maxPassY && myPos.y >= c.minPassY && myPos.y <= c.maxPassY) {
+                continue; // السماح بالقفز والعبور عبر النافذة
+            }
+
+            if (nextX + playerRadius > c.x - c.w/2 && nextX - playerRadius < c.x + c.w/2 &&
+                nextZ + playerRadius > c.z - c.d/2 && nextZ - playerRadius < c.z + c.d/2) {
+                return true; // اصطدام بالجدار
+            }
+        }
+        return false;
     }
 
     function animate() {
         requestAnimationFrame(animate);
 
-        // التهييل التلقائي
         if (playerHP < 100 && Date.now() - lastDamageTime >= HEAL_DELAY) {
             playerHP = Math.min(100, playerHP + 0.4);
             updateHealthUI();
         }
 
-        // إصلاح الحركة المعكوسة تماماً
         let inputX = 0, inputZ = 0;
-        if (keys.w) inputZ += 1;  // W للأمام
-        if (keys.s) inputZ -= 1;  // S للخلف
-        if (keys.a) inputX -= 1;  // A لليسار
-        if (keys.d) inputX += 1;  // D لليمين
+        if (keys.w) inputZ += 1;
+        if (keys.s) inputZ -= 1;
+        if (keys.a) inputX -= 1;
+        if (keys.d) inputX += 1;
 
         if (touchMove.x !== 0 || touchMove.y !== 0) {
             inputX = touchMove.x;
@@ -509,16 +547,31 @@
             let sin = Math.sin(playerYaw);
             let cos = Math.cos(playerYaw);
 
-            // تحريك صحيح باتجاه نظرة الكاميرا
-            myPos.x += (inputX * cos - inputZ * sin) * moveSpeed;
-            myPos.z += (-inputX * sin - inputZ * cos) * moveSpeed;
+            let nextX = myPos.x + (inputX * cos - inputZ * sin) * moveSpeed;
+            let nextZ = myPos.z + (-inputX * sin - inputZ * cos) * moveSpeed;
+
+            // تطبيق منع اختراق الجدران
+            if (!checkWallCollision(nextX, myPos.z)) myPos.x = nextX;
+            if (!checkWallCollision(myPos.x, nextZ)) myPos.z = nextZ;
         }
 
         myPos.x = Math.max(50, Math.min(4950, myPos.x));
         myPos.z = Math.max(50, Math.min(4950, myPos.z));
 
-        // حساب صعود السلالم والارتفاع
+        // حساب الارتفاع وأرضية الدور الأول والسلالم
         let floorHeight = baseEyeHeight;
+
+        // الوقوف على أرضيات الدور الثاني
+        for (let fl of floorsColliders) {
+            if (myPos.x > fl.x - fl.w/2 && myPos.x < fl.x + fl.w/2 &&
+                myPos.z > fl.z - fl.d/2 && myPos.z < fl.z + fl.d/2) {
+                if (myPos.y >= fl.heightY - 15) {
+                    floorHeight = fl.heightY;
+                }
+            }
+        }
+
+        // صعود السلالم
         for (let st of stairsColliders) {
             let dx = myPos.x - st.x;
             let dz = myPos.z - st.z;
@@ -535,8 +588,9 @@
         }
 
         if (myPos.y <= floorHeight) {
-            if (!isGrounded && highestY - floorHeight > 45) {
-                applyDamage(10);
+            // إلغاء الضرر تماماً عند القفز العادي (يحصل ضرر فقط عند القفز من ارتفاعات شاهقة > 70)
+            if (!isGrounded && highestY - floorHeight > 75) {
+                applyDamage(15);
             }
             myPos.y = floorHeight;
             velocityY = 0;
@@ -544,7 +598,6 @@
             highestY = floorHeight;
         }
 
-        // اهتزاز السلاح أثناء المشي
         if (isMoving && isGrounded && !isAiming) {
             walkBobble += 0.12;
             fpWeaponGroup.position.y = Math.sin(walkBobble) * 0.04;
