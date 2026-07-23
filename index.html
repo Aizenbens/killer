@@ -24,6 +24,20 @@
         select { text-align-last: center; cursor: pointer; }
         button { background: linear-gradient(90deg, #9b59b6, #00ffff); color: #000; font-weight: 900; cursor: pointer; }
 
+        .insta-link {
+            display: inline-block;
+            margin-top: 15px;
+            color: #e1306c;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 13px;
+            transition: transform 0.2s, color 0.2s;
+        }
+        .insta-link:hover {
+            color: #ff6097;
+            transform: scale(1.05);
+        }
+
         #gameWrapper { display: none; position: relative; width: 100vw; height: 100vh; }
         
         #healthUI {
@@ -103,6 +117,9 @@
             <option value="online">🌐 لعب أونلاين</option>
         </select>
         <button id="startBtn">دخول الساحة 3D</button>
+        <a href="https://www.instagram.com/algerian_aizen/" target="_blank" class="insta-link">
+            📸 تابعني على إنستغرام: @algerian_aizen
+        </a>
     </div>
 </div>
 
@@ -265,7 +282,7 @@
 
         if (gameMode === "online" && socket) {
             setupSocketListeners();
-            socket.emit('joinGame', { name: myPlayerName, x: myPlayerPos.x, y: myPlayerPos.y });
+            socket.emit('initGame', { name: myPlayerName });
         } else {
             spawnBots(5);
         }
@@ -574,48 +591,32 @@
     function setupSocketListeners() {
         if (!socket) return;
 
-        socket.on('currentPlayers', (players) => {
-            for (let id in players) {
-                if (id !== socket.id && !otherPlayers[id]) {
-                    let pModel = createHumanoidPlayerMesh();
-                    pModel.position.set(players[id].x, 0, players[id].y);
-                    scene.add(pModel);
-                    otherPlayers[id] = { mesh: pModel, name: players[id].name, kills: 0, deaths: 0 };
+        socket.on('state', (state) => {
+            if (state.players) {
+                for (let id in state.players) {
+                    if (id !== socket.id) {
+                        let pData = state.players[id];
+                        if (!otherPlayers[id]) {
+                            let pModel = createHumanoidPlayerMesh(pData.team === 'blue' ? 0x00ffff : 0xff0055);
+                            scene.add(pModel);
+                            otherPlayers[id] = { mesh: pModel, name: pData.name || 'مقاتل', kills: 0, deaths: 0 };
+                        }
+                        otherPlayers[id].mesh.position.set(pData.x, 0, pData.y);
+                        otherPlayers[id].mesh.rotation.y = pData.angle || 0;
+                    }
+                }
+
+                for (let id in otherPlayers) {
+                    if (!state.players[id]) {
+                        scene.remove(otherPlayers[id].mesh);
+                        delete otherPlayers[id];
+                    }
                 }
             }
-            updateLeaderboardUI();
         });
 
-        socket.on('playerJoined', (data) => {
-            let pModel = createHumanoidPlayerMesh();
-            pModel.position.set(data.x, 0, data.y);
-            scene.add(pModel);
-            otherPlayers[data.id] = { mesh: pModel, name: data.name, kills: 0, deaths: 0 };
-            addChatMessage(`🎮 انضم المقاتل ${data.name} إلى الساحة!`, true);
-            updateLeaderboardUI();
-        });
-
-        socket.on('playerMoved', (data) => {
-            if (otherPlayers[data.id]) {
-                otherPlayers[data.id].mesh.position.set(data.x, 0, data.y);
-                otherPlayers[data.id].mesh.rotation.y = data.yaw;
-            }
-        });
-
-        socket.on('playerShot', (data) => {
-            let start = new THREE.Vector3(data.origin.x, data.origin.y, data.origin.z);
-            let target = new THREE.Vector3(data.target.x, data.target.y, data.target.z);
-            createBulletTracer(start, target, 0xff0055);
-            playSound('shoot');
-        });
-
-        socket.on('playerLeft', (id) => {
-            if (otherPlayers[id]) {
-                addChatMessage(`🚪 غادر المقاتل ${otherPlayers[id].name} المعركة`, true);
-                scene.remove(otherPlayers[id].mesh);
-                delete otherPlayers[id];
-                updateLeaderboardUI();
-            }
+        socket.on('playerDied', () => {
+            takeDamage(100, "الخصم");
         });
 
         socket.on('chatMessage', (data) => { addChatMessage(`${data.name}: ${data.msg}`, false); });
@@ -736,8 +737,11 @@
         camera.position.set(myPlayerPos.x, playerY, myPlayerPos.y);
         camera.rotation.y = playerYaw;
 
-        if (socket && gameMode === "online" && (moveX !== 0 || moveZ !== 0)) {
-            socket.emit('playerMove', { x: myPlayerPos.x, y: myPlayerPos.y, z: playerY, yaw: playerYaw });
+        if (socket && gameMode === "online") {
+            socket.emit('playerMove', { 
+                movement: movement,
+                angle: playerYaw
+            });
         }
     }
 
@@ -762,7 +766,7 @@
             createBulletTracer(weaponPos, targetPoint, 0x00ffff);
 
             if (socket && gameMode === "online") {
-                socket.emit('shoot', { origin: weaponPos, target: targetPoint, weaponId: currentWeaponId });
+                socket.emit('shoot', { angle: playerYaw });
             }
 
             bots.forEach(bot => {
@@ -879,7 +883,7 @@
     });
 
     window.addEventListener('click', (e) => {
-        if (e.target.tagName === 'INPUT' || e.target.closest('#weaponUI') || e.target.closest('#tabBtn') || e.target.closest('#chatContainer')) return;
+        if (e.target.tagName === 'INPUT' || e.target.closest('#weaponUI') || e.target.closest('#tabBtn') || e.target.closest('#chatContainer') || e.target.classList.contains('insta-link')) return;
         performAttack();
     });
 
