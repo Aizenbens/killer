@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KRUNK-WAR 3D - Enhanced Edition</title>
+    <title>KRUNK-WAR 3D - Pro Edition</title>
     <style>
         * { box-sizing: border-box; touch-action: none; -webkit-touch-callout: none; user-select: none; }
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Segoe UI', Tahoma, sans-serif; }
@@ -36,12 +36,17 @@
         #statusText { font-size: 11px; color: #e74c3c; margin-top: 6px; font-weight: bold; }
 
         #gameWrapper { display: none; position: relative; width: 100vw; height: 100vh; }
-        #crosshair { position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; transform: translate(-50%, -50%); pointer-events: none; z-index: 6; background: #2ecc71; border-radius: 50%; border: 1px solid #000; }
+        #crosshair { position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; transform: translate(-50%, -50%); pointer-events: none; z-index: 6; background: #2ecc71; border-radius: 50%; border: 1px solid #000; transition: opacity 0.15s; }
         
         #hitmarker { position: absolute; top: 50%; left: 50%; width: 18px; height: 18px; transform: translate(-50%, -50%); pointer-events: none; z-index: 7; opacity: 0; }
         #hitmarker::before, #hitmarker::after { content: ''; position: absolute; background: #f1c40f; }
         #hitmarker::before { top: 8px; left: 0; width: 18px; height: 2px; transform: rotate(45deg); }
         #hitmarker::after { top: 8px; left: 0; width: 18px; height: 2px; transform: rotate(-45deg); }
+
+        /* Kill Feed UI */
+        #killFeed { position: absolute; top: 15px; right: 15px; width: 220px; z-index: 8; pointer-events: none; display: flex; flex-direction: column; gap: 5px; }
+        .kill-msg { background: rgba(0, 0, 0, 0.75); color: #fff; padding: 5px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; border-right: 3px solid #e74c3c; animation: fadeOut 4s forwards; }
+        @keyframes fadeOut { 0% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
 
         #healthUI { position: absolute; top: 12px; left: 12px; background: rgba(0, 0, 0, 0.85); padding: 8px 12px; border-radius: 8px; border: 2px solid #f1c40f; color: #fff; font-size: 11px; z-index: 4; width: 150px; }
         .hp-bar-container { width: 100%; background: #333; height: 8px; border-radius: 4px; margin-top: 4px; overflow: hidden; }
@@ -57,9 +62,10 @@
         .touch-controls { position: absolute; bottom: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; align-items: flex-end; pointer-events: none; z-index: 5; }
         .joystick-zone { width: 85px; height: 85px; border: 2px dashed rgba(241, 196, 15, 0.6); border-radius: 50%; display: flex; justify-content: center; align-items: center; pointer-events: auto; background: rgba(0,0,0,0.3); }
         .joystick-stick { width: 30px; height: 30px; background: #f39c12; border-radius: 50%; }
-        .touch-action-btns { display: flex; gap: 6px; pointer-events: auto; flex-wrap: wrap; max-width: 170px; justify-content: flex-end; }
+        .touch-action-btns { display: flex; gap: 6px; pointer-events: auto; flex-wrap: wrap; max-width: 180px; justify-content: flex-end; }
         .action-btn { width: 44px; height: 44px; border-radius: 8px; display: flex; justify-content: center; align-items: center; color: white; font-weight: 900; font-size: 10px; border: 2px solid #000; }
         .fire-btn { background: #e74c3c; width: 52px; height: 52px; font-size: 11px; }
+        .ads-btn { background: #8e44ad; }
         .sprint-btn { background: #f1c40f; color: #000; }
         .jump-btn { background: #2ecc71; }
         .crouch-btn { background: #3498db; }
@@ -109,6 +115,8 @@
 <div id="gameWrapper">
     <div id="crosshair"></div>
     <div id="hitmarker"></div>
+    <div id="killFeed"></div>
+
     <div id="healthUI">
         <div>الصحة (HP)</div>
         <div class="hp-bar-container"><div id="hpBarFill"></div></div>
@@ -131,6 +139,7 @@
 <div class="touch-controls" id="touchUI" style="display: none;">
     <div class="joystick-zone" id="joyZone"><div class="joystick-stick" id="joyStick"></div></div>
     <div class="touch-action-btns">
+        <div class="action-btn ads-btn" id="adsBtn">🔍 سكوب</div>
         <div class="action-btn sprint-btn" id="sprintBtn">⚡ ركض</div>
         <div class="action-btn crouch-btn" id="crouchBtn">🧎 انحناء</div>
         <div class="action-btn jump-btn" id="jumpBtn">🦘 قفز</div>
@@ -151,11 +160,13 @@
     let remotePlayers = {};
     const movement = { up: false, down: false, left: false, right: false };
 
-    let isCrouching = false, isSprinting = false;
+    let isCrouching = false, isSprinting = false, isAiming = false;
     let targetCamY = 32, currentCamY = 32, velocityY = 0, isGrounded = true;
     const gravity = -0.45, jumpPower = 8.5;
 
     let fpWeaponGroup, currentKnifeMesh, currentPistolMesh, currentRifleMesh;
+    let knifeAnimTime = 0, isKnifeSwinging = false;
+    let walkBobble = 0;
 
     const WEAPONS = {
         1: { name: "خنجر تكتيكي 🗡️", cd: 250, range: 60, damage: 100, maxAmmo: Infinity, currentAmmo: Infinity, isMelee: true },
@@ -236,6 +247,8 @@
         conn.on('data', (data) => {
             if (data.type === 'move') {
                 updateRemotePlayer(data);
+            } else if (data.type === 'kill') {
+                addKillFeed(data.killer, data.victim, data.weapon);
             }
         });
     }
@@ -267,15 +280,11 @@
         dirLight.position.set(1000, 2000, 1000);
         scene.add(dirLight);
 
-        // إنشاء أرضية بمشاهد بصرية تكتيكية
-        const floorGeo = new THREE.PlaneGeometry(5000, 5000);
-        const floorMat = new THREE.MeshLambertMaterial({ color: 0x2c3e50 });
-        const floor = new THREE.Mesh(floorGeo, floorMat);
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(5000, 5000), new THREE.MeshLambertMaterial({ color: 0x2c3e50 }));
         floor.rotation.x = -Math.PI / 2;
         floor.position.set(2500, 0, 2500);
         scene.add(floor);
 
-        // شبكة إرشادية على الأرضية
         const grid = new THREE.GridHelper(5000, 100, 0xf39c12, 0x7f8c8d);
         grid.position.set(2500, 1, 2500);
         scene.add(grid);
@@ -300,6 +309,14 @@
                     playerPitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, playerPitch));
                 }
             });
+
+            window.addEventListener('mousedown', (e) => {
+                if (e.button === 2) toggleADS(true);
+            });
+            window.addEventListener('mouseup', (e) => {
+                if (e.button === 2) toggleADS(false);
+            });
+            window.addEventListener('contextmenu', e => e.preventDefault());
         }
 
         selectWeapon(3);
@@ -311,7 +328,6 @@
         const crateMat = new THREE.MeshLambertMaterial({ color: 0xd35400 });
         const towerMat = new THREE.MeshLambertMaterial({ color: 0x7f8c8d });
 
-        // جدران الحدود الحامية للخريطة ($5000 \times 5000$)
         const walls = [
             { x: 2500, z: 0, w: 5000, h: 200, d: 40 },
             { x: 2500, z: 5000, w: 5000, h: 200, d: 40 },
@@ -325,7 +341,6 @@
             scene.add(wall);
         });
 
-        // توزيع عوائق تكتيكية (صناديق وجدران) داخل الخريطة
         for (let i = 0; i < 60; i++) {
             let cx = 300 + Math.random() * 4400;
             let cz = 300 + Math.random() * 4400;
@@ -335,7 +350,6 @@
             scene.add(crate);
         }
 
-        // أبراج مراقبة تكتيكية مرتفعة
         for (let i = 0; i < 8; i++) {
             let tx = 600 + i * 550;
             let tz = 600 + (i % 2) * 2800;
@@ -346,11 +360,30 @@
         }
     }
 
+    function createScopeMesh() {
+        const scopeGroup = new THREE.Group();
+        const baseMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
+        const glassMat = new THREE.MeshBasicMaterial({ color: 0x3498db, transparent: true, opacity: 0.4 });
+        const dotMat = new THREE.MeshBasicMaterial({ color: 0xe74c3c });
+
+        const base = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.08, 0.4), baseMat);
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.02, 8, 16), baseMat);
+        ring.position.set(0, 0.14, 0);
+
+        const glass = new THREE.Mesh(new THREE.CircleGeometry(0.1, 16), glassMat);
+        glass.position.set(0, 0.14, 0);
+
+        const redDot = new THREE.Mesh(new THREE.SphereGeometry(0.015, 8, 8), dotMat);
+        redDot.position.set(0, 0.14, 0.01);
+
+        scopeGroup.add(base, ring, glass, redDot);
+        return scopeGroup;
+    }
+
     function buildDetailedWeapons() {
         const darkMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
         const metalMat = new THREE.MeshLambertMaterial({ color: 0x95a5a6 });
 
-        // تصغير الأحجام لزيادة وضوح الشاشة (Scale Down)
         currentKnifeMesh = new THREE.Group();
         currentKnifeMesh.add(new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.8, 2.5), metalMat));
         currentKnifeMesh.position.set(0.6, -0.6, -1.5);
@@ -358,19 +391,37 @@
 
         currentPistolMesh = new THREE.Group();
         currentPistolMesh.add(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.6, 2.0), darkMat));
+        const pistolScope = createScopeMesh();
+        pistolScope.position.set(0, 0.35, -0.2);
+        currentPistolMesh.add(pistolScope);
         currentPistolMesh.position.set(0.6, -0.6, -1.5);
         currentPistolMesh.visible = false;
         fpWeaponGroup.add(currentPistolMesh);
 
         currentRifleMesh = new THREE.Group();
         currentRifleMesh.add(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.7, 3.2), darkMat));
+        const rifleScope = createScopeMesh();
+        rifleScope.position.set(0, 0.42, -0.4);
+        currentRifleMesh.add(rifleScope);
         currentRifleMesh.position.set(0.6, -0.6, -1.5);
         currentRifleMesh.visible = false;
         fpWeaponGroup.add(currentRifleMesh);
     }
 
+    function toggleADS(state) {
+        if (currentWeaponId === 1) return;
+        isAiming = state;
+        document.getElementById('crosshair').style.opacity = isAiming ? '0' : '1';
+
+        const targetFOV = isAiming ? 45 : 75;
+        camera.fov = targetFOV;
+        camera.updateProjectionMatrix();
+    }
+
     function selectWeapon(id) {
         currentWeaponId = id;
+        toggleADS(false);
+
         document.querySelectorAll('.slot').forEach((s, idx) => s.classList.toggle('active', idx + 1 === id));
         document.getElementById('currentWeaponText').innerText = WEAPONS[id].name;
 
@@ -388,9 +439,7 @@
 
     function updateRemotePlayer(data) {
         if (!remotePlayers[data.id]) {
-            // تصميم مفصل لشخصية اللاعب بدل مكعب بسيط
             const playerGroup = new THREE.Group();
-
             const bodyMat = new THREE.MeshLambertMaterial({ color: 0xe74c3c });
             const headMat = new THREE.MeshLambertMaterial({ color: 0xf1c40f });
 
@@ -408,16 +457,26 @@
         remotePlayers[data.id].rotation.y = data.yaw;
     }
 
+    function addKillFeed(killer, victim, weapon) {
+        const feed = document.getElementById('killFeed');
+        const item = document.createElement('div');
+        item.className = 'kill-msg';
+        item.innerText = `☠️ ${killer} قَضَى على ${victim} [${weapon}]`;
+        feed.appendChild(item);
+        setTimeout(() => item.remove(), 4000);
+    }
+
     function animate() {
         requestAnimationFrame(animate);
 
+        let isMoving = movement.up || movement.down || movement.left || movement.right;
         let speed = isCrouching ? 2.5 : (isSprinting ? 7 : 4.5);
+
         if (movement.up) { myPos.x -= Math.sin(playerYaw) * speed; myPos.z -= Math.cos(playerYaw) * speed; }
         if (movement.down) { myPos.x += Math.sin(playerYaw) * speed; myPos.z += Math.cos(playerYaw) * speed; }
         if (movement.left) { myPos.x -= Math.cos(playerYaw) * speed; myPos.z += Math.sin(playerYaw) * speed; }
         if (movement.right) { myPos.x += Math.cos(playerYaw) * speed; myPos.z -= Math.sin(playerYaw) * speed; }
 
-        // حدود الخريطة لمنع الخروج
         myPos.x = Math.max(50, Math.min(4950, myPos.x));
         myPos.z = Math.max(50, Math.min(4950, myPos.z));
 
@@ -426,6 +485,38 @@
         currentCamY += (targetCamY - currentCamY) * 0.2;
 
         if (currentCamY <= targetCamY) { currentCamY = targetCamY; velocityY = 0; isGrounded = true; }
+
+        // أنيميشن اهتزاز السلاح أثناء المشي
+        if (isMoving && isGrounded) {
+            walkBobble += 0.15;
+            fpWeaponGroup.position.y = Math.sin(walkBobble) * 0.05;
+            fpWeaponGroup.position.x = Math.cos(walkBobble * 0.5) * 0.03;
+        } else {
+            fpWeaponGroup.position.set(0, 0, 0);
+        }
+
+        // أنيميشن طعن السكين
+        if (isKnifeSwinging) {
+            knifeAnimTime += 0.2;
+            currentKnifeMesh.rotation.x = -Math.sin(knifeAnimTime) * 1.2;
+            currentKnifeMesh.position.z = -1.5 - Math.sin(knifeAnimTime) * 0.5;
+            if (knifeAnimTime >= Math.PI) {
+                isKnifeSwinging = false;
+                knifeAnimTime = 0;
+                currentKnifeMesh.rotation.set(0, 0, 0);
+                currentKnifeMesh.position.set(0.6, -0.6, -1.5);
+            }
+        }
+
+        // وضع السكوب ADS
+        let activeWeaponMesh = currentWeaponId === 2 ? currentPistolMesh : currentRifleMesh;
+        if (currentWeaponId !== 1) {
+            if (isAiming) {
+                activeWeaponMesh.position.lerp(new THREE.Vector3(0, -0.32, -0.8), 0.2);
+            } else {
+                activeWeaponMesh.position.lerp(new THREE.Vector3(0.6, -0.6, -1.5), 0.2);
+            }
+        }
 
         if (camera) {
             camera.position.set(myPos.x, currentCamY, myPos.z);
@@ -440,8 +531,25 @@
         renderer.render(scene, camera);
     }
 
+    function createTracerEffect() {
+        const material = new THREE.LineBasicMaterial({ color: 0xf1c40f });
+        const points = [];
+        points.push(new THREE.Vector3(myPos.x, currentCamY - 2, myPos.z));
+        
+        let targetX = myPos.x - Math.sin(playerYaw) * 300;
+        let targetZ = myPos.z - Math.cos(playerYaw) * 300;
+        points.push(new THREE.Vector3(targetX, currentCamY, targetZ));
+
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        const line = new THREE.Line(geometry, material);
+        scene.add(line);
+
+        setTimeout(() => scene.remove(line), 50);
+    }
+
     function setupTouch() {
         document.getElementById('fireBtn').addEventListener('touchstart', performAttack);
+        document.getElementById('adsBtn').addEventListener('touchstart', () => toggleADS(!isAiming));
         document.getElementById('jumpBtn').addEventListener('touchstart', () => {
             if (isGrounded) { velocityY = jumpPower; isGrounded = false; }
         });
@@ -454,9 +562,21 @@
 
     function performAttack() {
         const weapon = WEAPONS[currentWeaponId];
-        if (!weapon.isMelee && weapon.currentAmmo <= 0) return;
-        if (!weapon.isMelee) { weapon.currentAmmo--; updateAmmoUI(); }
-        
+        if (weapon.isMelee) {
+            isKnifeSwinging = true;
+            knifeAnimTime = 0;
+            return;
+        }
+
+        if (weapon.currentAmmo <= 0) return;
+        weapon.currentAmmo--;
+        updateAmmoUI();
+
+        createTracerEffect();
+
+        // ارتداد الخفيف بالسلاح
+        playerPitch += 0.015;
+
         const hm = document.getElementById('hitmarker');
         hm.style.opacity = '1';
         setTimeout(() => hm.style.opacity = '0', 80);
@@ -476,7 +596,9 @@
         if (e.key === 'd' || e.key === 'D') movement.right = false;
     });
 
-    window.addEventListener('click', performAttack);
+    window.addEventListener('mousedown', (e) => {
+        if (e.button === 0) performAttack();
+    });
 </script>
 </body>
 </html>
