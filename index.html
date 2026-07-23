@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KRUNK-WAR 3D - Tactical Edition</title>
+    <title>KRUNK-WAR 3D - 3 Floors & Furniture Edition</title>
     <style>
         * { box-sizing: border-box; touch-action: none; -webkit-touch-callout: none; user-select: none; }
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Segoe UI', Tahoma, sans-serif; }
@@ -107,7 +107,7 @@
 
         <label>الجهاز:</label>
         <select id="deviceSelect">
-            <option value="pc">💻 كمبيوتر (ماوس + كيبورد + Shift للجري)</option>
+            <option value="pc">💻 كمبيوتر (ماوس + كيبورد)</option>
             <option value="phone">📱 هاتف (أزرار لمس)</option>
         </select>
 
@@ -150,7 +150,7 @@
 
     <div id="chatBox">
         <div id="chatMessages">
-            <div><b style="color:#38bdf8;">[النظام]:</b> أهلاً بك في الساحة! اضغط Enter للمحادثة.</div>
+            <div><b style="color:#38bdf8;">[النظام]:</b> مرحباً بك! البيوت تتكون من 3 أدوار مع أبواب وأثاث داخلي.</div>
         </div>
         <input type="text" id="chatInput" placeholder="اكتب رسالتك واضغط Enter..." maxlength="40">
     </div>
@@ -203,7 +203,7 @@
     const HEAL_DELAY = 5000;
 
     let fpWeaponGroup, currentKnifeMesh, currentPistolMesh, currentRifleMesh, muzzleFlashMesh;
-    let knifeAnimTime = 0, isKnifeSwinging = false;
+    let knifeAnimTime = 0, isKnifeSwinging = false, knifeAttackType = 0;
     let isReloading = false, reloadAnimProgress = 0;
     let walkBobble = 0;
 
@@ -315,9 +315,8 @@
 
     function init3D() {
         scene = new THREE.Scene();
-        // ألوان غامقة وواقعية مريحة للعين
         scene.background = new THREE.Color('#1e222d');
-        scene.fog = new THREE.FogExp2('#1e222d', 0.0003);
+        scene.fog = new THREE.FogExp2('#1e222d', 0.00025);
 
         camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 4000);
         camera.rotation.order = 'YXZ';
@@ -326,27 +325,26 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.getElementById('gameWrapper').appendChild(renderer.domElement);
 
-        const ambLight = new THREE.AmbientLight(0xffffff, 0.65);
+        const ambLight = new THREE.AmbientLight(0xffffff, 0.75);
         scene.add(ambLight);
 
-        const dirLight = new THREE.DirectionalLight(0xdbeade, 0.75);
-        dirLight.position.set(1000, 1800, 1000);
+        const dirLight = new THREE.DirectionalLight(0xdbeade, 0.85);
+        dirLight.position.set(1000, 2000, 1000);
         scene.add(dirLight);
 
-        // أرضية إسبلتية داكنة غير فاقعة
         const floor = new THREE.Mesh(new THREE.PlaneGeometry(5000, 5000), new THREE.MeshLambertMaterial({ color: 0x1f2937 }));
         floor.rotation.x = -Math.PI / 2;
         floor.position.set(2500, 0, 2500);
         scene.add(floor);
 
-        buildVariousHouses();
-        buildLargeObstacles();
+        build3FloorSpaciousHouses();
+        buildAbundantObstacles();
 
         fpWeaponGroup = new THREE.Group();
         camera.add(fpWeaponGroup);
         scene.add(camera);
 
-        buildDetailedWeapons();
+        buildEnhancedWeapons();
 
         const flashMat = new THREE.MeshBasicMaterial({ color: 0xfacc15, transparent: true, opacity: 0 });
         muzzleFlashMesh = new THREE.Mesh(new THREE.SphereGeometry(0.25, 8, 8), flashMat);
@@ -408,205 +406,175 @@
         animate();
     }
 
-    // بناء البيوت بأشكال أصلية متنوعة وألوان تكتيكية هادئة مع أبواب
-    function buildVariousHouses() {
-        const wallMaterials = [
-            new THREE.MeshLambertMaterial({ color: 0x334155 }), // إسمنتي داكن
-            new THREE.MeshLambertMaterial({ color: 0x475569 }), // رمادي داكن
-            new THREE.MeshLambertMaterial({ color: 0x5c2c2c }), // طوبي داكن
-            new THREE.MeshLambertMaterial({ color: 0x333d29 })  // زيتوني تكتيكي
+    // بناء بيوت واسعة من 3 أدوار مع أثاث داخلي وألوان مخصصة
+    function build3FloorSpaciousHouses() {
+        const houseColors = [
+            0x334155, // كحلي رمادي
+            0x475569, // بيتوني تكتيكي
+            0x5c3a21, // خشبي/طوبي داكن
+            0x2d4a3e, // زيتوني عميق
+            0x3b3345, // بنفسجي رمادي داكن
+            0x525252  // رمادي داكن
         ];
-        const doorFrameMat = new THREE.MeshLambertMaterial({ color: 0x1e293b });
-        const floor2Mat = new THREE.MeshLambertMaterial({ color: 0x1f2937 });
-        const stairMat = new THREE.MeshLambertMaterial({ color: 0x4b5563 });
+
+        const floorMat = new THREE.MeshLambertMaterial({ color: 0x1f2937 });
+        const furnitureMat = new THREE.MeshLambertMaterial({ color: 0x78350f }); // أثاث خشب محروق
+        const stairMat = new THREE.MeshLambertMaterial({ color: 0x64748b });
 
         for (let i = 0; i < 9; i++) {
             let hx = 800 + (i % 3) * 1400;
             let hz = 800 + Math.floor(i / 3) * 1400;
-            let mat = wallMaterials[i % wallMaterials.length];
 
-            let type = i % 3; // أنواع بيوت مختلفة
+            let width = 340, depth = 340;
+            let floorHeight = 70; // ارتفاع كل دور
+            let totalHeight = floorHeight * 3; // 3 أدوار
 
-            if (type === 0) {
-                // مستودع عريض بباب رئيسي ضخم
-                let width = 320, height = 120, depth = 220;
+            let wallMat = new THREE.MeshLambertMaterial({ color: houseColors[i % houseColors.length] });
 
-                let wLeft = new THREE.Mesh(new THREE.BoxGeometry(12, height, depth), mat);
-                wLeft.position.set(hx - width/2, height/2, hz);
+            // 1. الجدران الرئيسية الخارجية (اليسار واليمين والخلف)
+            let wLeft = new THREE.Mesh(new THREE.BoxGeometry(14, totalHeight, depth), wallMat);
+            wLeft.position.set(hx - width/2, totalHeight/2, hz);
 
-                let wRight = new THREE.Mesh(new THREE.BoxGeometry(12, height, depth), mat);
-                wRight.position.set(hx + width/2, height/2, hz);
+            let wRight = new THREE.Mesh(new THREE.BoxGeometry(14, totalHeight, depth), wallMat);
+            wRight.position.set(hx + width/2, totalHeight/2, hz);
 
-                let wBack = new THREE.Mesh(new THREE.BoxGeometry(width, height, 12), mat);
-                wBack.position.set(hx, height/2, hz - depth/2);
+            let wBack = new THREE.Mesh(new THREE.BoxGeometry(width, totalHeight, 14), wallMat);
+            wBack.position.set(hx, totalHeight/2, hz - depth/2);
 
-                // جدار أمامي مع مدخل باب واسع
-                let frontL = new THREE.Mesh(new THREE.BoxGeometry(110, height, 12), mat);
-                frontL.position.set(hx - 105, height/2, hz + depth/2);
+            scene.add(wLeft, wRight, wBack);
+            colliders.push({ x: hx - width/2, z: hz, w: 14, d: depth });
+            colliders.push({ x: hx + width/2, z: hz, w: 14, d: depth });
+            colliders.push({ x: hx, z: hz - depth/2, w: width, d: 14 });
 
-                let frontR = new THREE.Mesh(new THREE.BoxGeometry(110, height, 12), mat);
-                frontR.position.set(hx + 105, height/2, hz + depth/2);
+            // 2. الجدار الأمامي مع باب مدخل رئيسي واسع بالدور الأرضي ونوافذ بكل دور
+            let frontL = new THREE.Mesh(new THREE.BoxGeometry(120, totalHeight, 14), wallMat);
+            frontL.position.set(hx - 110, totalHeight/2, hz + depth/2);
 
-                let doorTop = new THREE.Mesh(new THREE.BoxGeometry(100, 30, 12), doorFrameMat);
-                doorTop.position.set(hx, height - 15, hz + depth/2);
+            let frontR = new THREE.Mesh(new THREE.BoxGeometry(120, totalHeight, 14), wallMat);
+            frontR.position.set(hx + 110, totalHeight/2, hz + depth/2);
 
-                scene.add(wLeft, wRight, wBack, frontL, frontR, doorTop);
+            // جدران إغلاق بين النوافذ بالدستور العلوي
+            let doorTopWall = new THREE.Mesh(new THREE.BoxGeometry(100, 20, 14), wallMat);
+            doorTopWall.position.set(hx, 60, hz + depth/2);
 
-                colliders.push({ x: hx - width/2, z: hz, w: 12, d: depth });
-                colliders.push({ x: hx + width/2, z: hz, w: 12, d: depth });
-                colliders.push({ x: hx, z: hz - depth/2, w: width, d: 12 });
-                colliders.push({ x: hx - 105, z: hz + depth/2, w: 110, d: 12 });
-                colliders.push({ x: hx + 105, z: hz + depth/2, w: 110, d: 12 });
+            let winTop2 = new THREE.Mesh(new THREE.BoxGeometry(100, 20, 14), wallMat);
+            winTop2.position.set(hx, 130, hz + depth/2);
 
-            } else if (type === 1) {
-                // برج بـ 2 دور مع نافذة قفز تكتيكية وسلالم
-                let width = 240, height = 150, depth = 240;
+            let winTop3 = new THREE.Mesh(new THREE.BoxGeometry(100, 20, 14), wallMat);
+            winTop3.position.set(hx, 200, hz + depth/2);
 
-                let wLeft = new THREE.Mesh(new THREE.BoxGeometry(12, height, depth), mat);
-                wLeft.position.set(hx - width/2, height/2, hz);
+            scene.add(frontL, frontR, doorTopWall, winTop2, winTop3);
 
-                let wRight = new THREE.Mesh(new THREE.BoxGeometry(12, height, depth), mat);
-                wRight.position.set(hx + width/2, height/2, hz);
+            colliders.push({ x: hx - 110, z: hz + depth/2, w: 120, d: 14 });
+            colliders.push({ x: hx + 110, z: hz + depth/2, w: 120, d: 14 });
 
-                let wBack = new THREE.Mesh(new THREE.BoxGeometry(width, height, 12), mat);
-                wBack.position.set(hx, height/2, hz - depth/2);
+            // النوافذ بالدور الثاني والثالث تسمح بالعبور والقفز منها
+            colliders.push({ x: hx, z: hz + depth/2, w: 100, d: 14, minPassY: 70, maxPassY: 125 });
+            colliders.push({ x: hx, z: hz + depth/2, w: 100, d: 14, minPassY: 140, maxPassY: 195 });
 
-                // جدار أمامي يحتوي مدخل باب بالأسفل ونافذة بالدور الثاني
-                let frontL = new THREE.Mesh(new THREE.BoxGeometry(80, height, 12), mat);
-                frontL.position.set(hx - 80, height/2, hz + depth/2);
+            // 3. أرضيات الأدوار الثاني والثالث
+            for (let f = 1; f <= 2; f++) {
+                let fy = f * floorHeight;
+                let floorMesh = new THREE.Mesh(new THREE.BoxGeometry(width - 20, 8, depth - 20), floorMat);
+                floorMesh.position.set(hx, fy, hz);
+                scene.add(floorMesh);
 
-                let frontR = new THREE.Mesh(new THREE.BoxGeometry(80, height, 12), mat);
-                frontR.position.set(hx + 80, height/2, hz + depth/2);
+                floorsColliders.push({ x: hx, z: hz, w: width - 20, d: depth - 20, heightY: fy + baseEyeHeight });
 
-                let windowBottom = new THREE.Mesh(new THREE.BoxGeometry(80, 75, 12), mat);
-                windowBottom.position.set(hx, 37.5, hz + depth/2);
-
-                let windowTop = new THREE.Mesh(new THREE.BoxGeometry(80, 30, 12), mat);
-                windowTop.position.set(hx, 135, hz + depth/2);
-
-                scene.add(wLeft, wRight, wBack, frontL, frontR, windowBottom, windowTop);
-
-                colliders.push({ x: hx - width/2, z: hz, w: 12, d: depth });
-                colliders.push({ x: hx + width/2, z: hz, w: 12, d: depth });
-                colliders.push({ x: hx, z: hz - depth/2, w: width, d: 12 });
-                colliders.push({ x: hx - 80, z: hz + depth/2, w: 80, d: 12 });
-                colliders.push({ x: hx + 80, z: hz + depth/2, w: 80, d: 12 });
-                colliders.push({ x: hx, z: hz + depth/2, w: 80, d: 12, maxPassY: 120, minPassY: 75 });
-
-                // أرضية الدور الثاني
-                let floor2 = new THREE.Mesh(new THREE.BoxGeometry(width - 20, 8, depth - 20), floor2Mat);
-                floor2.position.set(hx, 75, hz);
-                scene.add(floor2);
-                floorsColliders.push({ x: hx, z: hz, w: width - 20, d: depth - 20, heightY: 75 + baseEyeHeight });
-
-                // سلالم
-                for (let s = 0; s < 18; s++) {
-                    const step = new THREE.Mesh(new THREE.BoxGeometry(50, 6, 18), stairMat);
-                    let sx = hx - width/3;
-                    let sy = s * 4.2 + 3;
-                    let sz = (hz - depth/3) + s * 11;
+                // سلالم الصعود للدور الموالي
+                for (let s = 0; s < 16; s++) {
+                    const step = new THREE.Mesh(new THREE.BoxGeometry(55, 6, 18), stairMat);
+                    let sx = (f === 1) ? (hx - width/3) : (hx + width/3);
+                    let sy = (f - 1) * floorHeight + s * 4.4 + 3;
+                    let sz = (hz - depth/3) + s * 12;
                     step.position.set(sx, sy, sz);
                     scene.add(step);
 
-                    stairsColliders.push({ x: sx, z: sz, y: sy + baseEyeHeight, radius: 30 });
+                    stairsColliders.push({ x: sx, z: sz, y: sy + baseEyeHeight, radius: 32 });
                 }
-
-            } else {
-                // منزل مقسم بغرفتين وباب داخلي
-                let width = 280, height = 120, depth = 280;
-
-                let wLeft = new THREE.Mesh(new THREE.BoxGeometry(12, height, depth), mat);
-                wLeft.position.set(hx - width/2, height/2, hz);
-
-                let wRight = new THREE.Mesh(new THREE.BoxGeometry(12, height, depth), mat);
-                wRight.position.set(hx + width/2, height/2, hz);
-
-                let wBack = new THREE.Mesh(new THREE.BoxGeometry(width, height, 12), mat);
-                wBack.position.set(hx, height/2, hz - depth/2);
-
-                let frontL = new THREE.Mesh(new THREE.BoxGeometry(100, height, 12), mat);
-                frontL.position.set(hx - 90, height/2, hz + depth/2);
-
-                let frontR = new THREE.Mesh(new THREE.BoxGeometry(100, height, 12), mat);
-                frontR.position.set(hx + 90, height/2, hz + depth/2);
-
-                // جدار قاطع داخلي مع باب
-                let divider = new THREE.Mesh(new THREE.BoxGeometry(12, height, 180), mat);
-                divider.position.set(hx, height/2, hz - 30);
-
-                scene.add(wLeft, wRight, wBack, frontL, frontR, divider);
-
-                colliders.push({ x: hx - width/2, z: hz, w: 12, d: depth });
-                colliders.push({ x: hx + width/2, z: hz, w: 12, d: depth });
-                colliders.push({ x: hx, z: hz - depth/2, w: width, d: 12 });
-                colliders.push({ x: hx - 90, z: hz + depth/2, w: 100, d: 12 });
-                colliders.push({ x: hx + 90, z: hz + depth/2, w: 100, d: 12 });
-                colliders.push({ x: hx, z: hz - 30, w: 12, d: 180 });
             }
+
+            // 4. أثاث داخلي بالدور الأرضي والأدوار للتحصن الاختباء خلفه
+            addFurniture(hx - 60, 15, hz - 60, 50, 30, 80, furnitureMat); // طاولة تكتيكية كبيرة
+            addFurniture(hx + 80, 20, hz + 40, 40, 40, 40, furnitureMat); // صندوق تخزين أثاث
+            addFurniture(hx - 60, 70 + 15, hz + 50, 60, 30, 40, furnitureMat); // مكتب بالدور الثاني
+            addFurniture(hx + 70, 140 + 20, hz - 50, 50, 40, 50, furnitureMat); // خزنة أثاث بالدور الثالث
         }
     }
 
-    // بناء عوائق بحجم ضخم يسمح بالتغطية الكاملة للاعب
-    function buildLargeObstacles() {
-        const crateMat = new THREE.MeshLambertMaterial({ color: 0x3f2e21 }); // خشب داكن
-        const concreteMat = new THREE.MeshLambertMaterial({ color: 0x475569 }); // ساتر بيتوني
+    function addFurniture(x, y, z, w, h, d, mat) {
+        let obj = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+        obj.position.set(x, y, z);
+        scene.add(obj);
+        colliders.push({ x: x, z: z, w: w, d: d });
+    }
 
-        for (let i = 0; i < 45; i++) {
-            let cx = 300 + Math.random() * 4400;
-            let cz = 300 + Math.random() * 4400;
+    // بناء سواتر وعوائق كثيرة وخارجية
+    function buildAbundantObstacles() {
+        const crateMat = new THREE.MeshLambertMaterial({ color: 0x3f2e21 });
+        const concreteMat = new THREE.MeshLambertMaterial({ color: 0x475569 });
+
+        for (let i = 0; i < 70; i++) {
+            let cx = 200 + Math.random() * 4600;
+            let cz = 200 + Math.random() * 4600;
 
             if (i % 2 === 0) {
-                // صندوق ضخم للتغطية (ارتفاع 65)
-                let crate = new THREE.Mesh(new THREE.BoxGeometry(65, 65, 65), crateMat);
-                crate.position.set(cx, 32.5, cz);
+                let crate = new THREE.Mesh(new THREE.BoxGeometry(70, 70, 70), crateMat);
+                crate.position.set(cx, 35, cz);
                 scene.add(crate);
-                colliders.push({ x: cx, z: cz, w: 65, d: 65 });
+                colliders.push({ x: cx, z: cz, w: 70, d: 70 });
             } else {
-                // حاجز جداري تكتيكي عريض
-                let barrier = new THREE.Mesh(new THREE.BoxGeometry(120, 55, 25), concreteMat);
-                barrier.position.set(cx, 27.5, cz);
+                let barrier = new THREE.Mesh(new THREE.BoxGeometry(130, 60, 30), concreteMat);
+                barrier.position.set(cx, 30, cz);
                 scene.add(barrier);
-                colliders.push({ x: cx, z: cz, w: 120, d: 25 });
+                colliders.push({ x: cx, z: cz, w: 130, d: 30 });
             }
         }
     }
 
-    // تصميم نماذج أسلحة وسكين تكتيكي مطابق للصورة
-    function buildDetailedWeapons() {
+    // تصميم أسلحة بشكل محسن
+    function buildEnhancedWeapons() {
         const darkMetalMat = new THREE.MeshLambertMaterial({ color: 0x1e293b });
-        const steelBladeMat = new THREE.MeshLambertMaterial({ color: 0xcbd5e1 });
-        const greenGripMat = new THREE.MeshLambertMaterial({ color: 0x15803d }); // مقبض أخضر داكن تكتيكي
+        const steelBladeMat = new THREE.MeshLambertMaterial({ color: 0xe2e8f0 });
+        const greenGripMat = new THREE.MeshLambertMaterial({ color: 0x15803d });
 
-        // 1. الخنجر التكتيكي الأصغر والواقعي
+        // 1. خنجر الصيد التكتيكي
         currentKnifeMesh = new THREE.Group();
-        
-        // الشفرة الفولاذية
-        let blade = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.28, 1.2), steelBladeMat);
-        blade.position.set(0, 0, -0.6);
+        let blade = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.28, 1.1), steelBladeMat);
+        blade.position.set(0, 0, -0.55);
 
-        // واقي اليد (Guard)
-        let guard = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.45, 0.1), steelBladeMat);
+        let guard = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.4, 0.1), steelBladeMat);
         guard.position.set(0, 0, -0.02);
 
-        // المقبض الأخضر التكتيكي
-        let grip = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.65, 12), greenGripMat);
+        let grip = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.6, 12), greenGripMat);
         grip.rotation.x = Math.PI / 2;
-        grip.position.set(0, -0.02, 0.35);
+        grip.position.set(0, -0.02, 0.3);
 
         currentKnifeMesh.add(blade, guard, grip);
         currentKnifeMesh.position.set(0.35, -0.35, -0.8);
         fpWeaponGroup.add(currentKnifeMesh);
 
-        // 2. المسدس
+        // 2. مسدس بماسورة وتفاصيل محسنة
         currentPistolMesh = new THREE.Group();
-        currentPistolMesh.add(new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.45, 1.4), darkMetalMat));
+        let pBody = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.4, 1.3), darkMetalMat);
+        let pBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.6, 12), darkMetalMat);
+        pBarrel.rotation.x = Math.PI / 2;
+        pBarrel.position.set(0, 0.1, -0.8);
+        currentPistolMesh.add(pBody, pBarrel);
         currentPistolMesh.position.set(0.4, -0.4, -1.0);
         currentPistolMesh.visible = false;
         fpWeaponGroup.add(currentPistolMesh);
 
-        // 3. البندقية التكتيكية
+        // 3. بندقية محسنة مع مخزن وسكوب علوي
         currentRifleMesh = new THREE.Group();
-        currentRifleMesh.add(new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.5, 2.5), darkMetalMat));
+        let rBody = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.45, 2.3), darkMetalMat);
+        let rMag = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.6, 0.4), darkMetalMat);
+        rMag.position.set(0, -0.4, -0.2);
+        let rScope = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.8, 12), darkMetalMat);
+        rScope.rotation.x = Math.PI / 2;
+        rScope.position.set(0, 0.35, -0.2);
+
+        currentRifleMesh.add(rBody, rMag, rScope);
         currentRifleMesh.position.set(0.4, -0.4, -1.0);
         currentRifleMesh.visible = false;
         fpWeaponGroup.add(currentRifleMesh);
@@ -788,7 +756,7 @@
         }
 
         if (myPos.y <= floorHeight) {
-            if (!isGrounded && highestY - floorHeight > 80) {
+            if (!isGrounded && highestY - floorHeight > 85) {
                 applyDamage(20);
             }
             myPos.y = floorHeight;
@@ -805,13 +773,28 @@
             fpWeaponGroup.position.set(0, 0, 0);
         }
 
-        // انيميشن ضربة السكين الواقعية
+        // انيميشن حركة السكين (3 حركات مختلفة)
         if (isKnifeSwinging) {
             knifeAnimTime += 0.22;
-            currentKnifeMesh.rotation.y = -Math.sin(knifeAnimTime) * 1.2;
-            currentKnifeMesh.rotation.z = Math.sin(knifeAnimTime) * 0.8;
-            currentKnifeMesh.position.z = -0.8 - Math.sin(knifeAnimTime) * 0.4;
-            currentKnifeMesh.position.x = 0.35 - Math.sin(knifeAnimTime) * 0.3;
+
+            if (knifeAttackType === 0) {
+                // الحركة 1: طعنة مستقيمة وسريعة (Stab)
+                currentKnifeMesh.position.z = -0.8 - Math.sin(knifeAnimTime) * 0.6;
+                currentKnifeMesh.position.x = 0.35;
+                currentKnifeMesh.rotation.set(0, 0, 0);
+            } else if (knifeAttackType === 1) {
+                // الحركة 2: ضربة مائلة قاطعة (Slash Right)
+                currentKnifeMesh.rotation.y = -Math.sin(knifeAnimTime) * 1.3;
+                currentKnifeMesh.rotation.z = Math.sin(knifeAnimTime) * 0.8;
+                currentKnifeMesh.position.x = 0.35 - Math.sin(knifeAnimTime) * 0.4;
+                currentKnifeMesh.position.z = -0.8 - Math.sin(knifeAnimTime) * 0.3;
+            } else {
+                // الحركة 3: ضربة صاعدة سفلية (Upper Cut / Slash Left)
+                currentKnifeMesh.rotation.x = Math.sin(knifeAnimTime) * 1.2;
+                currentKnifeMesh.rotation.z = -Math.sin(knifeAnimTime) * 0.7;
+                currentKnifeMesh.position.y = -0.35 + Math.sin(knifeAnimTime) * 0.3;
+                currentKnifeMesh.position.z = -0.8 - Math.sin(knifeAnimTime) * 0.4;
+            }
 
             if (knifeAnimTime >= Math.PI) {
                 isKnifeSwinging = false;
@@ -879,6 +862,8 @@
             if (!isKnifeSwinging) {
                 isKnifeSwinging = true;
                 knifeAnimTime = 0;
+                // التنقل بين 3 انيميشنات مختلفة للضرب بالسكين
+                knifeAttackType = (knifeAttackType + 1) % 3;
             }
             return;
         }
