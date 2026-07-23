@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KRUNK-WAR 3D - Pro Edition</title>
+    <title>KRUNK-WAR 3D - Krunker Style 80%</title>
     <style>
         * { box-sizing: border-box; touch-action: none; -webkit-touch-callout: none; user-select: none; }
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Segoe UI', Tahoma, sans-serif; }
@@ -29,46 +29,48 @@
         button:active { border-bottom: 0px; transform: translateY(4px); }
 
         .insta-link { display: inline-block; margin-top: 10px; color: #e1306c; text-decoration: none; font-weight: bold; font-size: 12px; }
-
         #shareBox { display: none; margin-top: 10px; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 8px; border: 1px dashed #f1c40f; }
         #shareBox input { font-size: 11px; background: #111; color: #2ecc71; }
-
         #statusText { font-size: 11px; color: #e74c3c; margin-top: 6px; font-weight: bold; }
 
         #gameWrapper { display: none; position: relative; width: 100vw; height: 100vh; }
         #crosshair { position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; transform: translate(-50%, -50%); pointer-events: none; z-index: 6; background: #2ecc71; border-radius: 50%; border: 1px solid #000; transition: opacity 0.15s; }
         
+        #scopeOverlay {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none; z-index: 9; display: none;
+            background: radial-gradient(circle at center, transparent 30%, rgba(0,0,0,0.95) 35%, #000 100%);
+        }
+        #scopeOverlay::before, #scopeOverlay::after { content: ''; position: absolute; background: rgba(255, 0, 0, 0.7); }
+        #scopeOverlay::before { top: 50%; left: 0; right: 0; height: 1px; }
+        #scopeOverlay::after { left: 50%; top: 0; bottom: 0; width: 1px; }
+
         #hitmarker { position: absolute; top: 50%; left: 50%; width: 18px; height: 18px; transform: translate(-50%, -50%); pointer-events: none; z-index: 7; opacity: 0; }
         #hitmarker::before, #hitmarker::after { content: ''; position: absolute; background: #f1c40f; }
         #hitmarker::before { top: 8px; left: 0; width: 18px; height: 2px; transform: rotate(45deg); }
         #hitmarker::after { top: 8px; left: 0; width: 18px; height: 2px; transform: rotate(-45deg); }
 
-        /* Kill Feed UI */
-        #killFeed { position: absolute; top: 15px; right: 15px; width: 220px; z-index: 8; pointer-events: none; display: flex; flex-direction: column; gap: 5px; }
-        .kill-msg { background: rgba(0, 0, 0, 0.75); color: #fff; padding: 5px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; border-right: 3px solid #e74c3c; animation: fadeOut 4s forwards; }
-        @keyframes fadeOut { 0% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
-
-        #healthUI { position: absolute; top: 12px; left: 12px; background: rgba(0, 0, 0, 0.85); padding: 8px 12px; border-radius: 8px; border: 2px solid #f1c40f; color: #fff; font-size: 11px; z-index: 4; width: 150px; }
-        .hp-bar-container { width: 100%; background: #333; height: 8px; border-radius: 4px; margin-top: 4px; overflow: hidden; }
-        #hpBarFill { width: 100%; background: #2ecc71; height: 100%; }
+        #healthUI { position: absolute; top: 12px; left: 12px; background: rgba(0, 0, 0, 0.85); padding: 8px 12px; border-radius: 8px; border: 2px solid #f1c40f; color: #fff; font-size: 11px; z-index: 4; width: 160px; }
+        .hp-bar-container { width: 100%; background: #333; height: 10px; border-radius: 5px; margin-top: 4px; overflow: hidden; }
+        #hpBarFill { width: 100%; background: #2ecc71; height: 100%; transition: width 0.2s, background-color 0.2s; }
         #ammoDisplay { margin-top: 4px; font-size: 11px; color: #f1c40f; display: flex; justify-content: space-between; }
+        #reloadNotice { color: #e74c3c; font-weight: bold; display: none; font-size: 10px; text-align: center; }
 
         #weaponUI { position: absolute; bottom: 12px; right: 12px; background: rgba(0, 0, 0, 0.85); padding: 6px 10px; border-radius: 8px; border: 2px solid #f39c12; color: #fff; font-size: 11px; z-index: 4; text-align: center; }
         .weapon-slots { display: flex; gap: 4px; margin-top: 4px; }
         .slot { padding: 4px 8px; background: #1c2733; border: 2px solid #2c3e50; border-radius: 4px; font-size: 10px; color: #fff; cursor: pointer; font-weight: bold; }
         .slot.active { border-color: #f1c40f; background: #f39c12; color: #000; }
 
-        /* Controls Phone */
         .touch-controls { position: absolute; bottom: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; align-items: flex-end; pointer-events: none; z-index: 5; }
-        .joystick-zone { width: 85px; height: 85px; border: 2px dashed rgba(241, 196, 15, 0.6); border-radius: 50%; display: flex; justify-content: center; align-items: center; pointer-events: auto; background: rgba(0,0,0,0.3); }
-        .joystick-stick { width: 30px; height: 30px; background: #f39c12; border-radius: 50%; }
+        .joystick-zone { width: 90px; height: 90px; border: 2px dashed rgba(241, 196, 15, 0.6); border-radius: 50%; display: flex; justify-content: center; align-items: center; pointer-events: auto; background: rgba(0,0,0,0.3); position: relative; }
+        .joystick-stick { width: 35px; height: 35px; background: #f39c12; border-radius: 50%; position: absolute; }
         .touch-action-btns { display: flex; gap: 6px; pointer-events: auto; flex-wrap: wrap; max-width: 180px; justify-content: flex-end; }
         .action-btn { width: 44px; height: 44px; border-radius: 8px; display: flex; justify-content: center; align-items: center; color: white; font-weight: 900; font-size: 10px; border: 2px solid #000; }
         .fire-btn { background: #e74c3c; width: 52px; height: 52px; font-size: 11px; }
         .ads-btn { background: #8e44ad; }
-        .sprint-btn { background: #f1c40f; color: #000; }
+        .slide-btn { background: #e67e22; }
         .jump-btn { background: #2ecc71; }
-        .crouch-btn { background: #3498db; }
+        .reload-btn { background: #3498db; }
     </style>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -115,15 +117,16 @@
 <div id="gameWrapper">
     <div id="crosshair"></div>
     <div id="hitmarker"></div>
-    <div id="killFeed"></div>
+    <div id="scopeOverlay"></div>
 
     <div id="healthUI">
-        <div>الصحة (HP)</div>
+        <div>الصحة (HP): <span id="hpValue">100</span></div>
         <div class="hp-bar-container"><div id="hpBarFill"></div></div>
         <div id="ammoDisplay">
             <span>الذخيرة:</span>
             <span id="ammoCount">30 / 150</span>
         </div>
+        <div id="reloadNotice">اضغط R للتعبئة!</div>
     </div>
 
     <div id="weaponUI">
@@ -140,8 +143,8 @@
     <div class="joystick-zone" id="joyZone"><div class="joystick-stick" id="joyStick"></div></div>
     <div class="touch-action-btns">
         <div class="action-btn ads-btn" id="adsBtn">🔍 سكوب</div>
-        <div class="action-btn sprint-btn" id="sprintBtn">⚡ ركض</div>
-        <div class="action-btn crouch-btn" id="crouchBtn">🧎 انحناء</div>
+        <div class="action-btn slide-btn" id="slideBtn">⚡ انزلاق</div>
+        <div class="action-btn reload-btn" id="reloadBtn">🔄 تعبئة</div>
         <div class="action-btn jump-btn" id="jumpBtn">🦘 قفز</div>
         <div class="action-btn fire-btn" id="fireBtn">إطلاق</div>
     </div>
@@ -149,81 +152,89 @@
 
 <script>
     let peer, conn;
-    let isHost = false;
-    let myId = "";
     let roomCode = "";
 
     let scene, camera, renderer;
     let myPos = { x: 2500, z: 2500 };
     let playerYaw = 0, playerPitch = 0;
     let selectedDevice = "pc";
-    let remotePlayers = {};
-    const movement = { up: false, down: false, left: false, right: false };
+    
+    const keys = { w: false, a: false, s: false, d: false };
+    let touchMove = { x: 0, y: 0 };
 
-    let isCrouching = false, isSprinting = false, isAiming = false;
+    let isSliding = false, isAiming = false;
     let targetCamY = 32, currentCamY = 32, velocityY = 0, isGrounded = true;
-    const gravity = -0.45, jumpPower = 8.5;
+    let highestY = 32;
+    const gravity = -0.5, jumpPower = 9.5;
 
-    let fpWeaponGroup, currentKnifeMesh, currentPistolMesh, currentRifleMesh;
+    // نظام الصحة والتجدد التلقائي
+    let playerHP = 100;
+    let lastDamageTime = 0;
+    const HEAL_DELAY = 5000;
+
+    let fpWeaponGroup, currentKnifeMesh, currentPistolMesh, currentRifleMesh, muzzleFlashMesh;
     let knifeAnimTime = 0, isKnifeSwinging = false;
     let walkBobble = 0;
 
+    // محاكي الأصوات باستخدام Web Audio API
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playSound(type) {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (type === 'shoot') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.15);
+        } else if (type === 'hit') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.08);
+        } else if (type === 'fall') {
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(100, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.2);
+        }
+    }
+
     const WEAPONS = {
-        1: { name: "خنجر تكتيكي 🗡️", cd: 250, range: 60, damage: 100, maxAmmo: Infinity, currentAmmo: Infinity, isMelee: true },
-        2: { name: "مسدس تكتيكي 🔫", cd: 180, range: 900, damage: 35, maxAmmo: 12, currentAmmo: 12, reserveAmmo: 60 },
-        3: { name: "بندقية تكتيكية 🎯", cd: 100, range: 1400, damage: 45, maxAmmo: 30, currentAmmo: 30, reserveAmmo: 150 }
+        1: { name: "خنجر تكتيكي 🗡️", cd: 200, damage: 100, maxAmmo: Infinity, currentAmmo: Infinity, isMelee: true },
+        2: { name: "مسدس تكتيكي 🔫", cd: 150, damage: 35, maxAmmo: 12, currentAmmo: 12, reserveAmmo: 60 },
+        3: { name: "بندقية تكتيكية 🎯", cd: 90, damage: 45, maxAmmo: 30, currentAmmo: 30, reserveAmmo: 150 }
     };
     let currentWeaponId = 3;
 
-    window.onload = () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const codeParam = urlParams.get('room');
-        if (codeParam) {
-            document.getElementById('joinCodeInput').value = codeParam.toUpperCase();
-            document.getElementById('statusText').innerText = "تم قراءة الكود من الرابط! اضغط انضمام.";
-        }
-    };
-
-    function initPeer(customId = null, callback) {
-        document.getElementById('statusText').innerText = "جاري الاتصال بالسيرفر...";
-        peer = customId ? new Peer(customId) : new Peer();
-
-        peer.on('open', (id) => {
-            myId = id;
-            document.getElementById('statusText').innerText = "";
-            if (callback) callback();
-        });
-
-        peer.on('connection', (c) => {
-            conn = c;
-            setupConnection();
-        });
-
-        peer.on('error', () => {
-            document.getElementById('statusText').innerText = "خطأ في الاتصال أو الكود غير صحيح!";
-        });
-    }
-
     function createPrivateRoom() {
         roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-        isHost = true;
-
-        initPeer("KRUNK_" + roomCode, () => {
+        peer = new Peer("KRUNK_" + roomCode);
+        peer.on('open', () => {
             document.getElementById('roomCodeDisplay').value = roomCode;
             document.getElementById('shareBox').style.display = 'block';
-            document.getElementById('statusText').innerText = "في انتظار دخول الصديق...";
             start3DGame();
         });
     }
 
     function joinByCode() {
         let code = document.getElementById('joinCodeInput').value.trim().toUpperCase();
-        if (!code) { alert("يرجى كتابة كود الغرفة!"); return; }
-
-        isHost = false;
-        initPeer(null, () => {
+        if (!code) return;
+        peer = new Peer();
+        peer.on('open', () => {
             conn = peer.connect("KRUNK_" + code);
-            setupConnection();
             start3DGame();
         });
     }
@@ -236,21 +247,7 @@
     function copyInviteLink() {
         const link = `${window.location.origin}${window.location.pathname}?room=${roomCode}`;
         navigator.clipboard.writeText(link);
-        alert("تم نسخ رابط الدعوة! أرسله لصديقك وسيدخل فوراً.");
-    }
-
-    function setupConnection() {
-        conn.on('open', () => {
-            document.getElementById('mainMenu').style.display = 'none';
-        });
-
-        conn.on('data', (data) => {
-            if (data.type === 'move') {
-                updateRemotePlayer(data);
-            } else if (data.type === 'kill') {
-                addKillFeed(data.killer, data.victim, data.weapon);
-            }
-        });
+        alert("تم نسخ رابط الدعوة!");
     }
 
     function start3DGame() {
@@ -263,33 +260,30 @@
 
     function init3D() {
         scene = new THREE.Scene();
-        scene.background = new THREE.Color('#1e272e');
-        scene.fog = new THREE.FogExp2('#1e272e', 0.0002);
+        scene.background = new THREE.Color('#111827');
+        scene.fog = new THREE.FogExp2('#111827', 0.00025);
 
-        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 4000);
+        camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 0.1, 4000);
         camera.rotation.order = 'YXZ';
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.getElementById('gameWrapper').appendChild(renderer.domElement);
 
-        const ambLight = new THREE.AmbientLight(0xffffff, 0.7);
+        const ambLight = new THREE.AmbientLight(0xffffff, 0.8);
         scene.add(ambLight);
 
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
         dirLight.position.set(1000, 2000, 1000);
         scene.add(dirLight);
 
-        const floor = new THREE.Mesh(new THREE.PlaneGeometry(5000, 5000), new THREE.MeshLambertMaterial({ color: 0x2c3e50 }));
+        // أرضية الخريطة
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(5000, 5000), new THREE.MeshLambertMaterial({ color: 0x1f2937 }));
         floor.rotation.x = -Math.PI / 2;
         floor.position.set(2500, 0, 2500);
         scene.add(floor);
 
-        const grid = new THREE.GridHelper(5000, 100, 0xf39c12, 0x7f8c8d);
-        grid.position.set(2500, 1, 2500);
-        scene.add(grid);
-
-        buildMapObstaclesAndWalls();
+        buildDetailedHousesWithInteriors();
 
         fpWeaponGroup = new THREE.Group();
         camera.add(fpWeaponGroup);
@@ -297,11 +291,39 @@
 
         buildDetailedWeapons();
 
+        // الوميض الناري عند إطلاق النار
+        const flashMat = new THREE.MeshBasicMaterial({ color: 0xffd700, transparent: true, opacity: 0 });
+        muzzleFlashMesh = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), flashMat);
+        muzzleFlashMesh.position.set(0.5, -0.4, -2.5);
+        fpWeaponGroup.add(muzzleFlashMesh);
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'KeyW') keys.w = true;
+            if (e.code === 'KeyS') keys.s = true;
+            if (e.code === 'KeyA') keys.a = true;
+            if (e.code === 'KeyD') keys.d = true;
+            if (e.code === 'Space' && isGrounded) { velocityY = jumpPower; isGrounded = false; }
+            if (e.code === 'ShiftLeft') startSlide();
+            if (e.code === 'KeyR') reloadWeapon();
+
+            if (e.code === 'Digit1') selectWeapon(1);
+            if (e.code === 'Digit2') selectWeapon(2);
+            if (e.code === 'Digit3') selectWeapon(3);
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'KeyW') keys.w = false;
+            if (e.code === 'KeyS') keys.s = false;
+            if (e.code === 'KeyA') keys.a = false;
+            if (e.code === 'KeyD') keys.d = false;
+            if (e.code === 'ShiftLeft') isSliding = false;
+        });
+
         if (selectedDevice === 'phone') {
             document.getElementById('touchUI').style.display = 'flex';
             setupTouch();
         } else {
-            document.body.requestPointerLock();
+            window.addEventListener('click', () => { document.body.requestPointerLock(); });
             window.addEventListener('mousemove', (e) => {
                 if (document.pointerLockElement === document.body) {
                     playerYaw -= e.movementX * 0.0025;
@@ -309,8 +331,8 @@
                     playerPitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, playerPitch));
                 }
             });
-
             window.addEventListener('mousedown', (e) => {
+                if (e.button === 0) performAttack();
                 if (e.button === 2) toggleADS(true);
             });
             window.addEventListener('mouseup', (e) => {
@@ -323,87 +345,80 @@
         animate();
     }
 
-    function buildMapObstaclesAndWalls() {
-        const wallMat = new THREE.MeshLambertMaterial({ color: 0x34495e });
-        const crateMat = new THREE.MeshLambertMaterial({ color: 0xd35400 });
-        const towerMat = new THREE.MeshLambertMaterial({ color: 0x7f8c8d });
-
-        const walls = [
-            { x: 2500, z: 0, w: 5000, h: 200, d: 40 },
-            { x: 2500, z: 5000, w: 5000, h: 200, d: 40 },
-            { x: 0, z: 2500, w: 40, h: 200, d: 5000 },
-            { x: 5000, z: 2500, w: 40, h: 200, d: 5000 }
-        ];
-
-        walls.forEach(w => {
-            const wall = new THREE.Mesh(new THREE.BoxGeometry(w.w, w.h, w.d), wallMat);
-            wall.position.set(w.x, w.h / 2, w.z);
-            scene.add(wall);
-        });
-
-        for (let i = 0; i < 60; i++) {
-            let cx = 300 + Math.random() * 4400;
-            let cz = 300 + Math.random() * 4400;
-
-            const crate = new THREE.Mesh(new THREE.BoxGeometry(30, 30, 30), crateMat);
-            crate.position.set(cx, 15, cz);
-            scene.add(crate);
-        }
-
-        for (let i = 0; i < 8; i++) {
-            let tx = 600 + i * 550;
-            let tz = 600 + (i % 2) * 2800;
-
-            const tower = new THREE.Mesh(new THREE.CylinderGeometry(20, 25, 100, 8), towerMat);
-            tower.position.set(tx, 50, tz);
-            scene.add(tower);
+    function startSlide() {
+        if (!isSliding && isGrounded) {
+            isSliding = true;
+            targetCamY = 16;
+            setTimeout(() => { isSliding = false; targetCamY = 32; }, 600);
         }
     }
 
-    function createScopeMesh() {
-        const scopeGroup = new THREE.Group();
-        const baseMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
-        const glassMat = new THREE.MeshBasicMaterial({ color: 0x3498db, transparent: true, opacity: 0.4 });
-        const dotMat = new THREE.MeshBasicMaterial({ color: 0xe74c3c });
+    // بناء البيوت مع الأثاث الداخلي والمجسمات
+    function buildDetailedHousesWithInteriors() {
+        const houseColors = [0x374151, 0x4b5563, 0x1f2937];
+        const furnitureMat = new THREE.MeshLambertMaterial({ color: 0x9ca3af });
 
-        const base = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.08, 0.4), baseMat);
-        const ring = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.02, 8, 16), baseMat);
-        ring.position.set(0, 0.14, 0);
+        for (let i = 0; i < 12; i++) {
+            let hx = 600 + (i % 4) * 1000;
+            let hz = 600 + Math.floor(i / 4) * 1200;
+            let color = houseColors[i % houseColors.length];
 
-        const glass = new THREE.Mesh(new THREE.CircleGeometry(0.1, 16), glassMat);
-        glass.position.set(0, 0.14, 0);
+            const houseMat = new THREE.MeshLambertMaterial({ color: color });
 
-        const redDot = new THREE.Mesh(new THREE.SphereGeometry(0.015, 8, 8), dotMat);
-        redDot.position.set(0, 0.14, 0.01);
+            // البيوت والأدوار
+            const wallLeft = new THREE.Mesh(new THREE.BoxGeometry(10, 100, 120), houseMat);
+            wallLeft.position.set(hx - 60, 50, hz);
 
-        scopeGroup.add(base, ring, glass, redDot);
-        return scopeGroup;
+            const wallRight = new THREE.Mesh(new THREE.BoxGeometry(10, 100, 120), houseMat);
+            wallRight.position.set(hx + 60, 50, hz);
+
+            const floor2 = new THREE.Mesh(new THREE.BoxGeometry(120, 4, 120), houseMat);
+            floor2.position.set(hx, 50, hz);
+
+            // إطار النافذة
+            const windowFrame = new THREE.Mesh(new THREE.BoxGeometry(120, 15, 6), houseMat);
+            windowFrame.position.set(hx, 75, hz + 60);
+
+            // أثاث ومجسمات داخل البيوت (طاولات وصناديق)
+            const table = new THREE.Mesh(new THREE.BoxGeometry(20, 10, 15), furnitureMat);
+            table.position.set(hx - 20, 5, hz);
+
+            const crate1 = new THREE.Mesh(new THREE.BoxGeometry(12, 12, 12), furnitureMat);
+            crate1.position.set(hx + 20, 6, hz + 20);
+
+            const crate2 = new THREE.Mesh(new THREE.BoxGeometry(12, 12, 12), furnitureMat);
+            crate2.position.set(hx + 20, 18, hz + 20);
+
+            // السلالم
+            const stairsMat = new THREE.MeshLambertMaterial({ color: 0xf59e0b });
+            for (let s = 0; s < 10; s++) {
+                const step = new THREE.Mesh(new THREE.BoxGeometry(30, 5, 12), stairsMat);
+                step.position.set(hx - 35, s * 5, hz - 40 + s * 8);
+                scene.add(step);
+            }
+
+            scene.add(wallLeft, wallRight, floor2, windowFrame, table, crate1, crate2);
+        }
     }
 
     function buildDetailedWeapons() {
-        const darkMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
-        const metalMat = new THREE.MeshLambertMaterial({ color: 0x95a5a6 });
+        const darkMat = new THREE.MeshLambertMaterial({ color: 0x111827 });
+        const metalMat = new THREE.MeshLambertMaterial({ color: 0xd1d5db });
 
         currentKnifeMesh = new THREE.Group();
-        currentKnifeMesh.add(new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.8, 2.5), metalMat));
-        currentKnifeMesh.position.set(0.6, -0.6, -1.5);
+        currentKnifeMesh.add(new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.7, 2.2), metalMat));
+        currentKnifeMesh.position.set(0.5, -0.5, -1.2);
         fpWeaponGroup.add(currentKnifeMesh);
 
         currentPistolMesh = new THREE.Group();
-        currentPistolMesh.add(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.6, 2.0), darkMat));
-        const pistolScope = createScopeMesh();
-        pistolScope.position.set(0, 0.35, -0.2);
-        currentPistolMesh.add(pistolScope);
-        currentPistolMesh.position.set(0.6, -0.6, -1.5);
+        currentPistolMesh.add(new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.5, 1.8), darkMat));
+        currentPistolMesh.position.set(0.5, -0.5, -1.2);
         currentPistolMesh.visible = false;
         fpWeaponGroup.add(currentPistolMesh);
 
         currentRifleMesh = new THREE.Group();
-        currentRifleMesh.add(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.7, 3.2), darkMat));
-        const rifleScope = createScopeMesh();
-        rifleScope.position.set(0, 0.42, -0.4);
-        currentRifleMesh.add(rifleScope);
-        currentRifleMesh.position.set(0.6, -0.6, -1.5);
+        currentRifleMesh.add(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.6, 3.0), darkMat));
+        currentRifleMesh.position.set(0.5, -0.5, -1.2);
         currentRifleMesh.visible = false;
         fpWeaponGroup.add(currentRifleMesh);
     }
@@ -411,10 +426,13 @@
     function toggleADS(state) {
         if (currentWeaponId === 1) return;
         isAiming = state;
-        document.getElementById('crosshair').style.opacity = isAiming ? '0' : '1';
 
-        const targetFOV = isAiming ? 45 : 75;
-        camera.fov = targetFOV;
+        document.getElementById('crosshair').style.opacity = isAiming ? '0' : '1';
+        document.getElementById('scopeOverlay').style.display = isAiming ? 'block' : 'none';
+
+        fpWeaponGroup.visible = !isAiming;
+
+        camera.fov = isAiming ? 28 : 80;
         camera.updateProjectionMatrix();
     }
 
@@ -432,89 +450,113 @@
         updateAmmoUI();
     }
 
+    function reloadWeapon() {
+        const w = WEAPONS[currentWeaponId];
+        if (w.isMelee || w.currentAmmo === w.maxAmmo || w.reserveAmmo <= 0) return;
+
+        let needed = w.maxAmmo - w.currentAmmo;
+        let reloadAmount = Math.min(needed, w.reserveAmmo);
+
+        w.currentAmmo += reloadAmount;
+        w.reserveAmmo -= reloadAmount;
+
+        document.getElementById('reloadNotice').style.display = 'none';
+        updateAmmoUI();
+    }
+
     function updateAmmoUI() {
         const w = WEAPONS[currentWeaponId];
         document.getElementById('ammoCount').innerText = w.isMelee ? "∞ / ∞" : `${w.currentAmmo} / ${w.reserveAmmo}`;
-    }
-
-    function updateRemotePlayer(data) {
-        if (!remotePlayers[data.id]) {
-            const playerGroup = new THREE.Group();
-            const bodyMat = new THREE.MeshLambertMaterial({ color: 0xe74c3c });
-            const headMat = new THREE.MeshLambertMaterial({ color: 0xf1c40f });
-
-            const torso = new THREE.Mesh(new THREE.BoxGeometry(8, 14, 5), bodyMat);
-            torso.position.y = 12;
-
-            const head = new THREE.Mesh(new THREE.SphereGeometry(3.5, 8, 8), headMat);
-            head.position.y = 22;
-
-            playerGroup.add(torso, head);
-            scene.add(playerGroup);
-            remotePlayers[data.id] = playerGroup;
+        if (!w.isMelee && w.currentAmmo === 0) {
+            document.getElementById('reloadNotice').style.display = 'block';
         }
-        remotePlayers[data.id].position.set(data.x, 0, data.z);
-        remotePlayers[data.id].rotation.y = data.yaw;
     }
 
-    function addKillFeed(killer, victim, weapon) {
-        const feed = document.getElementById('killFeed');
-        const item = document.createElement('div');
-        item.className = 'kill-msg';
-        item.innerText = `☠️ ${killer} قَضَى على ${victim} [${weapon}]`;
-        feed.appendChild(item);
-        setTimeout(() => item.remove(), 4000);
+    function applyDamage(amount) {
+        playerHP = Math.max(0, playerHP - amount);
+        lastDamageTime = Date.now();
+        playSound('fall');
+        updateHealthUI();
+    }
+
+    function updateHealthUI() {
+        document.getElementById('hpValue').innerText = Math.round(playerHP);
+        const fill = document.getElementById('hpBarFill');
+        fill.style.width = playerHP + '%';
+        fill.style.backgroundColor = playerHP < 35 ? '#e74c3c' : '#2ecc71';
     }
 
     function animate() {
         requestAnimationFrame(animate);
 
-        let isMoving = movement.up || movement.down || movement.left || movement.right;
-        let speed = isCrouching ? 2.5 : (isSprinting ? 7 : 4.5);
+        // التهييل التلقائي
+        if (playerHP < 100 && Date.now() - lastDamageTime >= HEAL_DELAY) {
+            playerHP = Math.min(100, playerHP + 0.5);
+            updateHealthUI();
+        }
 
-        if (movement.up) { myPos.x -= Math.sin(playerYaw) * speed; myPos.z -= Math.cos(playerYaw) * speed; }
-        if (movement.down) { myPos.x += Math.sin(playerYaw) * speed; myPos.z += Math.cos(playerYaw) * speed; }
-        if (movement.left) { myPos.x -= Math.cos(playerYaw) * speed; myPos.z += Math.sin(playerYaw) * speed; }
-        if (movement.right) { myPos.x += Math.cos(playerYaw) * speed; myPos.z -= Math.sin(playerYaw) * speed; }
+        let moveX = 0, moveZ = 0;
+        if (keys.w) moveZ -= 1;
+        if (keys.s) moveZ += 1;
+        if (keys.a) moveX -= 1;
+        if (keys.d) moveX += 1;
+
+        if (touchMove.x !== 0 || touchMove.y !== 0) {
+            moveX = touchMove.x;
+            moveZ = touchMove.y;
+        }
+
+        let isMoving = (moveX !== 0 || moveZ !== 0);
+        let speed = isSliding ? 11.0 : 6.0; // سرعة خاطفة بنفس نظام Krunker
+
+        if (isMoving) {
+            let forwardX = -Math.sin(playerYaw);
+            let forwardZ = -Math.cos(playerYaw);
+            let rightX = Math.cos(playerYaw);
+            let rightZ = -Math.sin(playerYaw);
+
+            myPos.x += (forwardX * moveZ + rightX * moveX) * speed;
+            myPos.z += (forwardZ * moveZ + rightZ * moveX) * speed;
+        }
 
         myPos.x = Math.max(50, Math.min(4950, myPos.x));
         myPos.z = Math.max(50, Math.min(4950, myPos.z));
 
         velocityY += gravity;
         currentCamY += velocityY;
-        currentCamY += (targetCamY - currentCamY) * 0.2;
 
-        if (currentCamY <= targetCamY) { currentCamY = targetCamY; velocityY = 0; isGrounded = true; }
+        if (!isGrounded && currentCamY > highestY) {
+            highestY = currentCamY;
+        }
 
-        // أنيميشن اهتزاز السلاح أثناء المشي
-        if (isMoving && isGrounded) {
-            walkBobble += 0.15;
-            fpWeaponGroup.position.y = Math.sin(walkBobble) * 0.05;
-            fpWeaponGroup.position.x = Math.cos(walkBobble * 0.5) * 0.03;
+        if (currentCamY <= targetCamY) {
+            if (!isGrounded && highestY - targetCamY > 35) {
+                applyDamage(10);
+            }
+            currentCamY = targetCamY;
+            velocityY = 0;
+            isGrounded = true;
+            highestY = targetCamY;
+        }
+
+        // اهتزاز السلاح أثناء الحركة
+        if (isMoving && isGrounded && !isAiming) {
+            walkBobble += 0.2;
+            fpWeaponGroup.position.y = Math.sin(walkBobble) * 0.06;
+            fpWeaponGroup.position.x = Math.cos(walkBobble * 0.5) * 0.04;
         } else {
             fpWeaponGroup.position.set(0, 0, 0);
         }
 
-        // أنيميشن طعن السكين
         if (isKnifeSwinging) {
-            knifeAnimTime += 0.2;
-            currentKnifeMesh.rotation.x = -Math.sin(knifeAnimTime) * 1.2;
-            currentKnifeMesh.position.z = -1.5 - Math.sin(knifeAnimTime) * 0.5;
+            knifeAnimTime += 0.25;
+            currentKnifeMesh.rotation.x = -Math.sin(knifeAnimTime) * 1.4;
+            currentKnifeMesh.position.z = -1.2 - Math.sin(knifeAnimTime) * 0.5;
             if (knifeAnimTime >= Math.PI) {
                 isKnifeSwinging = false;
                 knifeAnimTime = 0;
                 currentKnifeMesh.rotation.set(0, 0, 0);
-                currentKnifeMesh.position.set(0.6, -0.6, -1.5);
-            }
-        }
-
-        // وضع السكوب ADS
-        let activeWeaponMesh = currentWeaponId === 2 ? currentPistolMesh : currentRifleMesh;
-        if (currentWeaponId !== 1) {
-            if (isAiming) {
-                activeWeaponMesh.position.lerp(new THREE.Vector3(0, -0.32, -0.8), 0.2);
-            } else {
-                activeWeaponMesh.position.lerp(new THREE.Vector3(0.6, -0.6, -1.5), 0.2);
+                currentKnifeMesh.position.set(0.5, -0.5, -1.2);
             }
         }
 
@@ -524,40 +566,45 @@
             camera.rotation.x = playerPitch;
         }
 
-        if (conn && conn.open) {
-            conn.send({ type: 'move', id: myId, x: myPos.x, z: myPos.z, yaw: playerYaw });
-        }
-
         renderer.render(scene, camera);
     }
 
-    function createTracerEffect() {
-        const material = new THREE.LineBasicMaterial({ color: 0xf1c40f });
-        const points = [];
-        points.push(new THREE.Vector3(myPos.x, currentCamY - 2, myPos.z));
-        
-        let targetX = myPos.x - Math.sin(playerYaw) * 300;
-        let targetZ = myPos.z - Math.cos(playerYaw) * 300;
-        points.push(new THREE.Vector3(targetX, currentCamY, targetZ));
-
-        const geometry = new THREE.BufferGeometry().setFromPoints(points);
-        const line = new THREE.Line(geometry, material);
-        scene.add(line);
-
-        setTimeout(() => scene.remove(line), 50);
-    }
-
     function setupTouch() {
+        const joyZone = document.getElementById('joyZone');
+        const joyStick = document.getElementById('joyStick');
+
+        joyZone.addEventListener('touchmove', (e) => {
+            const rect = joyZone.getBoundingClientRect();
+            const touch = e.touches[0];
+            let x = touch.clientX - (rect.left + rect.width / 2);
+            let y = touch.clientY - (rect.top + rect.height / 2);
+
+            let dist = Math.sqrt(x * x + y * y);
+            let maxDist = 35;
+
+            if (dist > maxDist) {
+                x = (x / dist) * maxDist;
+                y = (y / dist) * maxDist;
+            }
+
+            joyStick.style.transform = `translate(${x}px, ${y}px)`;
+            touchMove.x = x / maxDist;
+            touchMove.y = y / maxDist;
+        });
+
+        joyZone.addEventListener('touchend', () => {
+            joyStick.style.transform = `translate(0px, 0px)`;
+            touchMove.x = 0;
+            touchMove.y = 0;
+        });
+
         document.getElementById('fireBtn').addEventListener('touchstart', performAttack);
         document.getElementById('adsBtn').addEventListener('touchstart', () => toggleADS(!isAiming));
+        document.getElementById('reloadBtn').addEventListener('touchstart', reloadWeapon);
+        document.getElementById('slideBtn').addEventListener('touchstart', startSlide);
         document.getElementById('jumpBtn').addEventListener('touchstart', () => {
             if (isGrounded) { velocityY = jumpPower; isGrounded = false; }
         });
-        document.getElementById('crouchBtn').addEventListener('touchstart', () => {
-            isCrouching = !isCrouching;
-            targetCamY = isCrouching ? 16 : 32;
-        });
-        document.getElementById('sprintBtn').addEventListener('touchstart', () => { isSprinting = !isSprinting; });
     }
 
     function performAttack() {
@@ -568,37 +615,29 @@
             return;
         }
 
-        if (weapon.currentAmmo <= 0) return;
+        if (weapon.currentAmmo <= 0) {
+            reloadWeapon();
+            return;
+        }
+
         weapon.currentAmmo--;
         updateAmmoUI();
 
-        createTracerEffect();
+        // تشغيل صوت الإطلاق والارتداد
+        playSound('shoot');
+        playerPitch += 0.012;
 
-        // ارتداد الخفيف بالسلاح
-        playerPitch += 0.015;
+        // إظهار وميض ناري
+        if (muzzleFlashMesh) {
+            muzzleFlashMesh.material.opacity = 1;
+            setTimeout(() => muzzleFlashMesh.material.opacity = 0, 40);
+        }
 
         const hm = document.getElementById('hitmarker');
         hm.style.opacity = '1';
+        playSound('hit');
         setTimeout(() => hm.style.opacity = '0', 80);
     }
-
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'w' || e.key === 'W') movement.up = true;
-        if (e.key === 's' || e.key === 'S') movement.down = true;
-        if (e.key === 'a' || e.key === 'A') movement.left = true;
-        if (e.key === 'd' || e.key === 'D') movement.right = true;
-        if (e.code === 'Space' && isGrounded) { velocityY = jumpPower; isGrounded = false; }
-    });
-    document.addEventListener('keyup', (e) => {
-        if (e.key === 'w' || e.key === 'W') movement.up = false;
-        if (e.key === 's' || e.key === 'S') movement.down = false;
-        if (e.key === 'a' || e.key === 'A') movement.left = false;
-        if (e.key === 'd' || e.key === 'D') movement.right = false;
-    });
-
-    window.addEventListener('mousedown', (e) => {
-        if (e.button === 0) performAttack();
-    });
 </script>
 </body>
 </html>
