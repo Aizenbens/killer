@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE WAR 3D - Advanced Tactical Arena</title>
+    <title>THE WAR 3D - Cyber Arena</title>
     <style>
         body { margin: 0; background: #05020c; overflow: hidden; touch-action: none; font-family: 'Segoe UI', Roboto, sans-serif; user-select: none; }
         
@@ -41,6 +41,22 @@
         #hpBarFill { width: 100%; background: #00ffff; height: 100%; transition: width 0.2s; }
 
         #ammoDisplay { margin-top: 8px; font-size: 13px; color: #ffcc00; display: flex; justify-content: space-between; }
+
+        #roundBanner {
+            position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
+            background: rgba(12, 5, 26, 0.9); padding: 8px 25px; border-radius: 20px;
+            border: 2px solid #00ffff; color: #fff; font-weight: 900; font-size: 16px;
+            z-index: 5; box-shadow: 0 0 15px rgba(0, 255, 255, 0.3); text-align: center;
+        }
+
+        #roundWinnerModal {
+            display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(10, 5, 22, 0.95); border: 3px solid #00ffff; border-radius: 20px;
+            padding: 25px 40px; color: #fff; text-align: center; z-index: 10;
+            box-shadow: 0 0 50px rgba(0, 255, 255, 0.5); backdrop-filter: blur(10px);
+        }
+        #roundWinnerModal h2 { margin: 0 0 10px 0; color: #ffcc00; font-size: 28px; }
+        #roundWinnerModal p { margin: 0; font-size: 16px; color: #00ffff; }
 
         #weaponUI {
             position: absolute; bottom: 20px; right: 20px;
@@ -90,7 +106,6 @@
         #crosshair::before { top: 3px; left: -6px; width: 20px; height: 2px; }
         #crosshair::after { top: -6px; left: 3px; width: 2px; height: 20px; }
 
-        /* الأشرطة العائمة فوق رؤوس اللاعبين */
         .nameplate {
             position: absolute; transform: translate(-50%, -100%);
             display: flex; flex-direction: column; align-items: center; pointer-events: none;
@@ -133,6 +148,8 @@
     <div id="crosshair"></div>
     <canvas id="minimapCanvas" width="110" height="110"></canvas>
 
+    <div id="roundBanner">الجولة: <span id="roundNumber">1</span> 🏆</div>
+
     <div id="healthUI">
         <div>الصحة (HP)</div>
         <div class="hp-bar-container"><div id="hpBarFill"></div></div>
@@ -172,6 +189,11 @@
         </table>
     </div>
 
+    <div id="roundWinnerModal">
+        <h2 id="winnerTitle">🏆 انتهت الجولة!</h2>
+        <p id="winnerSub">الفائز هو: المقاتل</p>
+    </div>
+
     <div id="nameplatesContainer"></div>
 </div>
 
@@ -191,6 +213,7 @@
     try { socket = io(); } catch(e) { socket = null; }
 
     let scene, camera, renderer;
+    let mapObstacleMeshes = [];
     let obstacleBoxes = [];
     let otherPlayers = {};
     let bots = [];
@@ -203,25 +226,26 @@
     const movement = { up: false, down: false, left: false, right: false };
     let myPlayerPos = { x: 1250, y: 1250 };
     
-    // دعم زاوية النظر للأعلى وللأسفل (Pitch)
     let playerYaw = 0;
     let playerPitch = 0;
 
     let myKills = 0, myDeaths = 0;
+    let currentRound = 1;
+    let roundEnded = false;
 
     let playerY = 34;
     let velocityY = 0;
     let isGrounded = true;
-    const gravity = -0.55;
-    const jumpPower = 10.5;
+    const gravity = -0.65;
+    const jumpPower = 12.0;
+    const movementSpeed = 8.0; // حركة أسرع وأكثر سلاسة
 
     let audioCtx;
 
-    // أسلحة معدلة مع الذخيرة والواقعية
     const WEAPONS = {
-        1: { name: "خنجر العاصفة 🗡️", cd: 350, range: 50, damage: 40, maxAmmo: Infinity, currentAmmo: Infinity, isMelee: true },
-        2: { name: "مسدس تكتيكي 9mm 🔫", cd: 250, range: 750, damage: 22, maxAmmo: 12, currentAmmo: 12, reserveAmmo: 60, reloadTime: 1200 },
-        3: { name: "بندقية AK-Cyber 🎯", cd: 120, range: 1300, damage: 18, maxAmmo: 30, currentAmmo: 30, reserveAmmo: 120, reloadTime: 1800 }
+        1: { name: "خنجر العاصفة 🗡️", cd: 300, range: 60, damage: 45, maxAmmo: Infinity, currentAmmo: Infinity, isMelee: true },
+        2: { name: "مسدس تكتيكي 9mm 🔫", cd: 200, range: 800, damage: 25, maxAmmo: 15, currentAmmo: 15, reserveAmmo: 75, reloadTime: 1000 },
+        3: { name: "بندقية AK-Cyber 🎯", cd: 100, range: 1400, damage: 20, maxAmmo: 30, currentAmmo: 30, reserveAmmo: 150, reloadTime: 1500 }
     };
     let currentWeaponId = 1;
     let lastAttackTime = 0;
@@ -240,11 +264,11 @@
 
         if (type === 'shoot') {
             osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(500, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+            osc.frequency.setValueAtTime(550, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
             gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
-            osc.start(); osc.stop(audioCtx.currentTime + 0.12);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.1);
         } else if (type === 'reload') {
             osc.type = 'sine';
             osc.frequency.setValueAtTime(300, audioCtx.currentTime);
@@ -288,13 +312,14 @@
         scene.fog = new THREE.FogExp2('#080414', 0.0003);
 
         camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 5000);
-        camera.rotation.order = 'YXZ'; // لضمان سلاسة حركة الرأس Pitch/Yaw
+        camera.rotation.order = 'YXZ';
 
-        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
-        const ambLight = new THREE.AmbientLight(0xffffff, 1.8);
+        const ambLight = new THREE.AmbientLight(0xffffff, 2.0);
         scene.add(ambLight);
         const dirLight = new THREE.DirectionalLight(0x00ffff, 1.5);
         dirLight.position.set(1000, 2000, 1000);
@@ -316,27 +341,23 @@
         camera.add(fpWeaponGroup);
         scene.add(camera);
 
-        // ترسبن اللاعب في مكان عشوائي آمن
+        buildRealisticWeapons();
+        generateRandomMap();
+
         let startPos = getRandomSpawnPos();
         myPlayerPos = { x: startPos.x, y: startPos.z };
 
-        buildRealisticWeapons();
-        buildSmartObstacleMap();
-
         if (gameMode === "online" && socket) {
             setupSocketListeners();
-            socket.emit('initGame', { name: myPlayerName });
+            socket.emit('initGame', { name: myPlayerName, x: myPlayerPos.x, y: myPlayerPos.y });
         } else {
             spawnBots(6);
         }
 
-        // تحكم الرأس التام (يمين، يسار، فوق، تحت)
         window.addEventListener('mousemove', (e) => {
             if (document.pointerLockElement === document.body || e.buttons === 1) {
-                playerYaw -= e.movementX * 0.0022;
-                playerPitch -= e.movementY * 0.0022;
-                
-                // تقييد النظر للأعلى وللأسفل بـ 85 درجة
+                playerYaw -= e.movementX * 0.0025;
+                playerPitch -= e.movementY * 0.0025;
                 playerPitch = Math.max(-Math.PI / 2.1, Math.min(Math.PI / 2.1, playerPitch));
             }
         });
@@ -348,8 +369,8 @@
                     if (lastTouchX !== null) {
                         let deltaX = t.clientX - lastTouchX;
                         let deltaY = t.clientY - lastTouchY;
-                        playerYaw -= deltaX * 0.0035;
-                        playerPitch -= deltaY * 0.0035;
+                        playerYaw -= deltaX * 0.004;
+                        playerPitch -= deltaY * 0.004;
                         playerPitch = Math.max(-Math.PI / 2.1, Math.min(Math.PI / 2.1, playerPitch));
                     }
                     lastTouchX = t.clientX;
@@ -367,14 +388,12 @@
         animate();
     }
 
-    // بناء مجسم لاعب/بوت محسّن وواقعي يمسك بسلاح
     function createHumanoidPlayerMesh(colorHex = 0x00ffff) {
         const group = new THREE.Group();
         const armorMat = new THREE.MeshStandardMaterial({ color: 0x1f2438, metalness: 0.7, roughness: 0.3 });
         const accentMat = new THREE.MeshStandardMaterial({ color: colorHex, metalness: 0.5, roughness: 0.5 });
         const visorMat = new THREE.MeshBasicMaterial({ color: colorHex });
 
-        // الجسم والتكتيك
         const torso = new THREE.Mesh(new THREE.BoxGeometry(10, 18, 6), armorMat);
         torso.position.y = 19;
         group.add(torso);
@@ -383,7 +402,6 @@
         vest.position.y = 19;
         group.add(vest);
 
-        // الرأس والخوذة
         const head = new THREE.Mesh(new THREE.SphereGeometry(3.8, 16, 16), armorMat);
         head.position.y = 31;
         group.add(head);
@@ -392,7 +410,6 @@
         visor.position.set(0, 31.5, -2.5);
         group.add(visor);
 
-        // الأذرع في وضعية إمساك السلاح
         const armGeo = new THREE.CylinderGeometry(1.5, 1.2, 14, 8);
         const leftArm = new THREE.Mesh(armGeo, armorMat);
         leftArm.position.set(-6.5, 20, -2);
@@ -404,12 +421,10 @@
         rightArm.rotation.x = -Math.PI / 3;
         group.add(rightArm);
 
-        // مجسم السلاح الممسوك في اليد
         const gunBody = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2, 8), new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.9 }));
         gunBody.position.set(3, 18, -6);
         group.add(gunBody);
 
-        // الأرجل
         const legGeo = new THREE.CylinderGeometry(1.8, 1.4, 16, 8);
         const leftLeg = new THREE.Mesh(legGeo, armorMat);
         leftLeg.position.set(-2.8, 8, 0);
@@ -422,14 +437,12 @@
         return group;
     }
 
-    // تصميم أسلحة أكثر واقعية وتفصيلاً للـ FPS
     function buildRealisticWeapons() {
         const gunMetalMat = new THREE.MeshStandardMaterial({ color: 0x18191c, metalness: 0.9, roughness: 0.2 });
         const darkWoodMat = new THREE.MeshStandardMaterial({ color: 0x2d1a0e, roughness: 0.8 });
         const goldAccent = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.8, roughness: 0.3 });
         const cyanNeon = new THREE.MeshBasicMaterial({ color: 0x00ffff });
 
-        // 1. الخنجر
         currentKnifeMesh = new THREE.Group();
         const kHandle = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.6, 4, 12), darkWoodMat);
         kHandle.rotation.x = Math.PI / 2;
@@ -443,7 +456,6 @@
         currentKnifeMesh.position.set(1.5, -1.8, -3);
         fpWeaponGroup.add(currentKnifeMesh);
 
-        // 2. المسدس التكتيكي
         currentPistolMesh = new THREE.Group();
         const pGrip = new THREE.Mesh(new THREE.BoxGeometry(0.8, 3.2, 1.4), darkWoodMat);
         pGrip.rotation.x = -0.25;
@@ -459,7 +471,6 @@
         currentPistolMesh.visible = false;
         fpWeaponGroup.add(currentPistolMesh);
 
-        // 3. البندقية AK-Cyber
         currentRifleMesh = new THREE.Group();
         const rBody = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.6, 7), gunMetalMat);
         rBody.position.set(0, 0, -1);
@@ -505,7 +516,6 @@
         isReloading = true;
         playSound('reload');
 
-        // إمالة السلاح أثناء إعادة التعبئة
         if (fpWeaponGroup) fpWeaponGroup.rotation.z = -0.5;
 
         setTimeout(() => {
@@ -530,12 +540,16 @@
         }
     }
 
-    // خريطة ذكية مليئة بالمخابئ، الأعمدة، الصناديق والممرات
-    function buildSmartObstacleMap() {
+    // توليد خريطة عشوائية جديدة عند كل جولة
+    function generateRandomMap() {
+        mapObstacleMeshes.forEach(mesh => scene.remove(mesh));
+        mapObstacleMeshes = [];
+        obstacleBoxes = [];
+
         const wallMat = new THREE.MeshStandardMaterial({ color: 0x1a122e, roughness: 0.4 });
         const boxMat = new THREE.MeshStandardMaterial({ color: 0x2e1c4d, metalness: 0.3 });
 
-        // سور خارجي يحكم الخريطة
+        // الحدود الخارجية
         const mapBounds = [
             { x: 1250, z: -50, w: 2600, h: 40 },
             { x: 1250, z: 2550, w: 2600, h: 40 },
@@ -546,21 +560,22 @@
             const wall = new THREE.Mesh(new THREE.BoxGeometry(b.w, 80, b.h), wallMat);
             wall.position.set(b.x, 40, b.z);
             scene.add(wall);
+            mapObstacleMeshes.push(wall);
             addObstacleBox(b.x, b.z, b.w, b.h);
         });
 
-        // توزيع ذكي للمخابئ
-        for (let x = 200; x < 2400; x += 220) {
-            for (let z = 200; z < 2400; z += 220) {
-                let rand = Math.random();
-                if (rand > 0.65) {
-                    let w = Math.random() * 50 + 30;
-                    let h = Math.random() * 50 + 30;
-                    let height = Math.random() * 40 + 30;
+        // توليد عوائق ومجسمات في أماكن جديدة ومختلفة في كل جولة
+        for (let x = 200; x < 2400; x += 180) {
+            for (let z = 200; z < 2400; z += 180) {
+                if (Math.random() > 0.6) {
+                    let w = Math.random() * 60 + 30;
+                    let h = Math.random() * 60 + 30;
+                    let height = Math.random() * 50 + 25;
 
                     const block = new THREE.Mesh(new THREE.BoxGeometry(w, height, h), boxMat);
                     block.position.set(x, height / 2, z);
                     scene.add(block);
+                    mapObstacleMeshes.push(block);
                     addObstacleBox(x, z, w, h);
                 }
             }
@@ -579,6 +594,12 @@
     }
 
     function spawnBots(count) {
+        bots.forEach(b => {
+            if (b.nameplate) b.nameplate.remove();
+            scene.remove(b.mesh);
+        });
+        bots = [];
+
         const botNames = ["القااتل_01 🤖", "فانتوم ⚡", "سبيكتر 🎯", "السايبورغ ⚔️", "الظل 🚀", "المفترس 💥"];
         const colors = [0xe74c3c, 0xe67e22, 0xf1c40f, 0x9b59b6, 0x1abc9c, 0xff0055];
 
@@ -601,8 +622,6 @@
                 lastAttack: 0,
                 strafeDir: Math.random() > 0.5 ? 1 : -1
             });
-
-            addChatMessage(`🤖 انضم البوت ${botNames[i]} إلى المباراة!`, true);
         }
         updateLeaderboardUI();
     }
@@ -642,8 +661,49 @@
         if (fill) fill.style.width = `${health}%`;
     }
 
-    // ذكاء اصطناعي متطور للبوتات (تكتيكي)
+    function checkKillVictory(killerName, killsCount) {
+        if (killsCount >= 5 && !roundEnded) {
+            roundEnded = true;
+            document.getElementById('winnerTitle').innerText = "🏆 انتهت الجولة " + currentRound;
+            document.getElementById('winnerSub').innerText = "🥇 الفائز بالمركز الأول: " + killerName;
+            document.getElementById('roundWinnerModal').style.display = 'block';
+
+            setTimeout(() => {
+                startNextRound();
+            }, 4000);
+        }
+    }
+
+    function startNextRound() {
+        document.getElementById('roundWinnerModal').style.display = 'none';
+        currentRound++;
+        document.getElementById('roundNumber').innerText = currentRound;
+
+        // إعادة ضبط الإحصائيات
+        myKills = 0; myDeaths = 0;
+        myHealth = 100;
+        document.getElementById('hpBarFill').style.width = "100%";
+
+        WEAPONS[2].currentAmmo = WEAPONS[2].maxAmmo; WEAPONS[2].reserveAmmo = 75;
+        WEAPONS[3].currentAmmo = WEAPONS[3].maxAmmo; WEAPONS[3].reserveAmmo = 150;
+        updateAmmoUI();
+
+        // توليد خريطة جديدة ونقل اللاعبين
+        generateRandomMap();
+        let respawn = getRandomSpawnPos();
+        myPlayerPos = { x: respawn.x, y: respawn.z };
+
+        if (gameMode === "bots") {
+            spawnBots(6);
+        }
+
+        roundEnded = false;
+        addChatMessage(`🔄 بدأت الجولة ${currentRound}! تم تغيير مواقع العوائق.`, true);
+        updateLeaderboardUI();
+    }
+
     function updateBotsAI() {
+        if (roundEnded) return;
         const now = Date.now();
 
         bots.forEach(bot => {
@@ -676,18 +736,17 @@
                 }
             });
 
-            if (targetPos && closestDist < 900) {
+            if (targetPos && closestDist < 1000) {
                 let dx = targetPos.x - bot.x;
                 let dz = targetPos.z - bot.z;
                 let angle = Math.atan2(dx, dz);
 
-                // تفادي الالتصاق والتحرك الجانبي للتكتيك
-                let speed = 3.2;
-                if (closestDist < 120) speed = -2; // الابتعاد عند الاقتراب الزائد
+                let speed = 4.2;
+                if (closestDist < 120) speed = -2.5;
 
                 let strafeAngle = angle + (Math.PI / 2) * bot.strafeDir;
-                let nx = bot.x + Math.sin(angle) * speed + Math.sin(strafeAngle) * 0.8;
-                let nz = bot.z + Math.cos(angle) * speed + Math.cos(strafeAngle) * 0.8;
+                let nx = bot.x + Math.sin(angle) * speed + Math.sin(strafeAngle) * 1.2;
+                let nz = bot.z + Math.cos(angle) * speed + Math.cos(strafeAngle) * 1.2;
 
                 if (!checkCollision(nx, bot.z)) bot.x = nx;
                 if (!checkCollision(bot.x, nz)) bot.z = nz;
@@ -695,35 +754,36 @@
                 bot.mesh.position.set(bot.x, 0, bot.z);
                 bot.mesh.rotation.y = angle;
 
-                if (Math.random() < 0.02) bot.strafeDir *= -1; // تغيير اتجاه المناورة عشوائياً
+                if (Math.random() < 0.03) bot.strafeDir *= -1;
 
-                // إطلاق النار مع انحراف بسيط
-                if (closestDist < 600 && now - bot.lastAttack > 380) {
+                if (closestDist < 650 && now - bot.lastAttack > 320) {
                     bot.lastAttack = now;
                     let origin = new THREE.Vector3(bot.x, 22, bot.z);
                     let targetVec = new THREE.Vector3(
-                        targetPos.x + (Math.random() * 20 - 10),
+                        targetPos.x + (Math.random() * 16 - 8),
                         20,
-                        targetPos.z + (Math.random() * 20 - 10)
+                        targetPos.z + (Math.random() * 16 - 8)
                     );
                     
                     createBulletTracer(origin, targetVec, 0xff0055);
                     playSound('shoot');
 
-                    if (targetObj === "player" && closestDist < 500) {
-                        takeDamage(10, bot.name);
+                    if (targetObj === "player" && closestDist < 550) {
+                        takeDamage(12, bot.name);
                     } else if (targetObj && targetObj.health) {
-                        targetObj.health -= 12;
+                        targetObj.health -= 15;
                         if (targetObj.health <= 0) {
                             bot.kills++;
                             targetObj.deaths++;
                             addChatMessage(`☠️ قضى ${bot.name} على ${targetObj.name}`, true);
+                            checkKillVictory(bot.name, bot.kills);
+
                             setTimeout(() => {
                                 let respawnPos = getRandomSpawnPos();
                                 targetObj.health = 100;
                                 targetObj.x = respawnPos.x;
                                 targetObj.z = respawnPos.z;
-                            }, 3500);
+                            }, 3000);
                             updateLeaderboardUI();
                         }
                     }
@@ -742,10 +802,11 @@
         tracer.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), endPos.clone().sub(startPos).normalize());
 
         scene.add(tracer);
-        setTimeout(() => scene.remove(tracer), 70);
+        setTimeout(() => scene.remove(tracer), 60);
     }
 
     function takeDamage(amount, attackerName) {
+        if (roundEnded) return;
         myHealth -= amount;
         if (myHealth < 0) myHealth = 0;
         document.getElementById('hpBarFill').style.width = myHealth + "%";
@@ -754,11 +815,12 @@
             myDeaths++;
             addChatMessage(`☠️ تم القضاء عليك بواسطة ${attackerName}!`, true);
             setTimeout(() => {
+                if (roundEnded) return;
                 myHealth = 100;
                 document.getElementById('hpBarFill').style.width = "100%";
                 let respawn = getRandomSpawnPos();
                 myPlayerPos = { x: respawn.x, y: respawn.z };
-            }, 3000);
+            }, 2500);
             updateLeaderboardUI();
         }
     }
@@ -766,20 +828,40 @@
     function setupSocketListeners() {
         if (!socket) return;
 
+        // إرسال موقعك بانتظام لأي لاعب يدخل معك
+        setInterval(() => {
+            if (socket && gameMode === "online") {
+                socket.emit('playerMove', { 
+                    x: myPlayerPos.x,
+                    y: myPlayerPos.y,
+                    angle: playerYaw,
+                    pitch: playerPitch,
+                    name: myPlayerName,
+                    hp: myHealth,
+                    kills: myKills
+                });
+            }
+        }, 30);
+
         socket.on('state', (state) => {
             if (state.players) {
                 for (let id in state.players) {
                     if (id !== socket.id) {
                         let pData = state.players[id];
                         if (!otherPlayers[id]) {
-                            let pModel = createHumanoidPlayerMesh(pData.team === 'blue' ? 0x00ffff : 0xff0055);
+                            let pModel = createHumanoidPlayerMesh(0xff0055);
                             let np = createNameplateUI(pData.name || 'مقاتل');
                             scene.add(pModel);
-                            otherPlayers[id] = { mesh: pModel, nameplate: np, name: pData.name || 'مقاتل', kills: 0, deaths: 0, hp: 100 };
+                            otherPlayers[id] = { mesh: pModel, nameplate: np, name: pData.name || 'مقاتل', kills: pData.kills || 0, deaths: 0, hp: pData.hp || 100 };
+                            addChatMessage(`🌐 انضم ${pData.name || 'لاعب'} إلى اللعبة!`, true);
                         }
                         otherPlayers[id].mesh.position.set(pData.x, 0, pData.y);
                         otherPlayers[id].mesh.rotation.y = pData.angle || 0;
-                        updateNameplatePosition(otherPlayers[id].mesh, otherPlayers[id].nameplate, pData.hp || 100);
+                        otherPlayers[id].hp = pData.hp || 100;
+                        otherPlayers[id].kills = pData.kills || 0;
+
+                        checkKillVictory(otherPlayers[id].name, otherPlayers[id].kills);
+                        updateNameplatePosition(otherPlayers[id].mesh, otherPlayers[id].nameplate, otherPlayers[id].hp);
                     }
                 }
 
@@ -793,7 +875,6 @@
             }
         });
 
-        socket.on('playerDied', () => { takeDamage(100, "الخصم"); });
         socket.on('chatMessage', (data) => { addChatMessage(`${data.name}: ${data.msg}`, false); });
     }
 
@@ -882,7 +963,6 @@
     }
 
     function handleFPSMovement() {
-        let speed = 5.2;
         let moveX = 0;
         let moveZ = 0;
 
@@ -896,8 +976,8 @@
         if (movement.left) { moveX -= rightX; moveZ -= rightZ; }
         if (movement.right) { moveX += rightX; moveZ += rightZ; }
 
-        let nextX = myPlayerPos.x + moveX * speed;
-        let nextZ = myPlayerPos.y + moveZ * speed;
+        let nextX = myPlayerPos.x + moveX * movementSpeed;
+        let nextZ = myPlayerPos.y + moveZ * movementSpeed;
 
         if (!checkCollision(nextX, myPlayerPos.y)) myPlayerPos.x = nextX;
         if (!checkCollision(myPlayerPos.x, nextZ)) myPlayerPos.y = nextZ;
@@ -911,26 +991,16 @@
         }
 
         camera.position.set(myPlayerPos.x, playerY, myPlayerPos.y);
-        
-        // استخدام Pitch + Yaw معاً لسلاسة الـ Aim
         camera.rotation.y = playerYaw;
         camera.rotation.x = playerPitch;
-
-        if (socket && gameMode === "online") {
-            socket.emit('playerMove', { 
-                movement: movement,
-                angle: playerYaw
-            });
-        }
     }
 
     function performAttack() {
-        if (isReloading) return;
+        if (isReloading || roundEnded) return;
         const now = Date.now();
         const weapon = WEAPONS[currentWeaponId];
         if (now - lastAttackTime < weapon.cd) return;
 
-        // التأكد من وجود رصاص
         if (!weapon.isMelee && weapon.currentAmmo <= 0) {
             reloadWeapon();
             return;
@@ -947,45 +1017,60 @@
             playSound('knife');
         } else {
             playSound('shoot');
+        }
 
-            let weaponPos = new THREE.Vector3();
-            camera.getWorldPosition(weaponPos);
+        // استخدام Raycasting الدقيق لإصابة الهدف فوراً
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+        raycaster.far = weapon.range;
 
-            let dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-            let targetPoint = weaponPos.clone().add(dir.multiplyScalar(weapon.range));
+        let startPos = new THREE.Vector3();
+        camera.getWorldPosition(startPos);
+        startPos.y -= 2;
 
-            createBulletTracer(weaponPos, targetPoint, 0x00ffff);
+        let targetPoint = startPos.clone().add(raycaster.ray.direction.clone().multiplyScalar(weapon.range));
+        createBulletTracer(startPos, targetPoint, 0x00ffff);
 
-            if (socket && gameMode === "online") {
-                socket.emit('shoot', { angle: playerYaw });
-            }
+        if (gameMode === "bots") {
+            let hitDetected = false;
 
             bots.forEach(bot => {
-                if (bot.health <= 0) return;
-                let bDist = Math.hypot(bot.x - myPlayerPos.x, bot.z - myPlayerPos.y);
-                if (bDist < weapon.range) {
-                    let angleToBot = Math.atan2(bot.x - myPlayerPos.x, bot.z - myPlayerPos.y);
-                    let diff = Math.abs(angleToBot - playerYaw);
-                    if (diff < 0.35) {
-                        bot.health -= weapon.damage;
-                        if (bot.health <= 0) {
-                            myKills++;
-                            bot.deaths++;
-                            addChatMessage(`🎯 قمت بالقضاء على ${bot.name}!`, true);
-                            setTimeout(() => {
-                                let respawnPos = getRandomSpawnPos();
-                                bot.health = 100;
-                                bot.x = respawnPos.x;
-                                bot.z = respawnPos.z;
-                            }, 3500);
-                            updateLeaderboardUI();
-                        }
+                if (bot.health <= 0 || hitDetected) return;
+
+                let botMeshes = [];
+                bot.mesh.traverse((child) => {
+                    if (child.isMesh) botMeshes.push(child);
+                });
+
+                const intersects = raycaster.intersectObjects(botMeshes);
+
+                if (intersects.length > 0) {
+                    hitDetected = true;
+                    bot.health -= weapon.damage;
+
+                    updateNameplatePosition(bot.mesh, bot.nameplate, bot.health);
+
+                    if (bot.health <= 0) {
+                        myKills++;
+                        bot.deaths++;
+                        addChatMessage(`🎯 قمت بالقضاء على ${bot.name}!`, true);
+                        checkKillVictory(myPlayerName, myKills);
+
+                        setTimeout(() => {
+                            if (roundEnded) return;
+                            let respawnPos = getRandomSpawnPos();
+                            bot.health = 100;
+                            bot.x = respawnPos.x;
+                            bot.z = respawnPos.z;
+                            bot.mesh.position.set(bot.x, 0, bot.z);
+                        }, 3000);
+
+                        updateLeaderboardUI();
                     }
                 }
             });
         }
 
-        // حركة ارتداد السلاح (Recoil Kickback)
         if (fpWeaponGroup) {
             fpWeaponGroup.position.z += 0.4;
             setTimeout(() => { fpWeaponGroup.position.z = 0; }, 60);
@@ -1050,7 +1135,7 @@
         }
 
         init3D();
-        addChatMessage(`🔥 مرحباً بك ${myPlayerName} في الساحة!`, true);
+        addChatMessage(`🔥 مرحباً بك ${myPlayerName}! الجولة الأولى بدأت (الهدف: 5 قتلات بالفوز).`, true);
     });
 
     document.addEventListener('keydown', (e) => {
