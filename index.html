@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE WAR - Online Multiplayer FPS</title>
+    <title>THE WAR - Enhanced FPS Multiplayer</title>
     <style>
         body { margin: 0; background: #05020c; overflow: hidden; touch-action: none; font-family: 'Segoe UI', Roboto, sans-serif; user-select: none; }
         
@@ -25,75 +25,70 @@
 
         #gameWrapper { display: none; position: relative; width: 100vw; height: 100vh; }
         
-        /* إشعارات الانضمام والمغادرة */
-        #notificationContainer {
-            position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
-            z-index: 8; display: flex; flex-direction: column; gap: 8px; pointer-events: none;
-        }
-        .notif-toast {
-            background: rgba(15, 8, 30, 0.9); border: 1px solid #00ffff; color: #fff;
-            padding: 8px 18px; border-radius: 30px; font-size: 13px; font-weight: bold;
-            box-shadow: 0 0 15px rgba(0,255,255,0.3); animation: fadeInOut 4s forwards;
-        }
-        @keyframes fadeInOut {
-            0% { opacity: 0; transform: translateY(-10px); }
-            15% { opacity: 1; transform: translateY(0); }
-            85% { opacity: 1; transform: translateY(0); }
-            100% { opacity: 0; transform: translateY(-10px); }
-        }
-
         #healthUI {
-            position: absolute; top: 20px; left: 20px; background: rgba(6, 2, 15, 0.9);
-            padding: 12px 20px; border-radius: 16px; border: 1px solid rgba(52, 152, 219, 0.4);
-            color: #fff; font-weight: bold; font-size: 13px; z-index: 4; width: 150px;
+            position: absolute; top: 15px; left: 15px; background: rgba(6, 2, 15, 0.9);
+            padding: 10px 15px; border-radius: 12px; border: 1px solid rgba(52, 152, 219, 0.4);
+            color: #fff; font-weight: bold; font-size: 12px; z-index: 4; width: 130px;
         }
-        .hp-bar-container { width: 100%; background: #111; height: 10px; border-radius: 6px; margin-top: 6px; overflow: hidden; }
+        .hp-bar-container { width: 100%; background: #111; height: 8px; border-radius: 4px; margin-top: 5px; overflow: hidden; }
         #hpBarFill { width: 100%; background: #3498db; height: 100%; transition: width 0.2s; }
 
         #weaponUI {
-            position: absolute; bottom: 25px; right: 25px;
-            background: rgba(6, 2, 15, 0.9); padding: 12px 18px; border-radius: 16px;
-            border: 2px solid #00ffff; color: #fff; font-weight: 900; font-size: 14px;
+            position: absolute; bottom: 20px; right: 20px;
+            background: rgba(6, 2, 15, 0.9); padding: 10px 14px; border-radius: 14px;
+            border: 2px solid #00ffff; color: #fff; font-weight: 900; font-size: 12px;
             z-index: 4; text-align: center;
         }
-        .weapon-slots { display: flex; gap: 6px; margin-top: 6px; }
-        .slot { padding: 6px 10px; background: #1b0933; border: 1px solid #555; border-radius: 8px; font-size: 11px; cursor: pointer; color: #fff; }
+        .weapon-slots { display: flex; gap: 5px; margin-top: 5px; }
+        .slot { padding: 4px 8px; background: #1b0933; border: 1px solid #555; border-radius: 6px; font-size: 10px; cursor: pointer; color: #fff; }
         .slot.active { border-color: #00ffff; background: #3498db; color: #000; }
 
-        /* زر وقائمة الإحصائيات TAB Leaderboard */
+        /* زر TAB أصغر حجمًا */
         #tabBtn {
-            position: absolute; top: 20px; right: 180px; z-index: 5;
-            background: rgba(6, 2, 15, 0.9); border: 1px solid #9b59b6; color: #fff;
-            padding: 8px 16px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 12px;
+            position: absolute; top: 15px; right: 150px; z-index: 5;
+            background: rgba(6, 2, 15, 0.85); border: 1px solid #9b59b6; color: #fff;
+            padding: 5px 10px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 11px;
         }
         #leaderboardModal {
             display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 80%; max-width: 500px; background: rgba(10, 5, 22, 0.95); border: 2px solid #9b59b6;
-            border-radius: 20px; padding: 20px; z-index: 9; color: #fff; backdrop-filter: blur(10px);
+            width: 80%; max-width: 450px; background: rgba(10, 5, 22, 0.95); border: 2px solid #9b59b6;
+            border-radius: 16px; padding: 15px; z-index: 9; color: #fff; backdrop-filter: blur(10px);
         }
-        #leaderboardModal h2 { margin-top: 0; text-align: center; color: #00ffff; }
-        .stats-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        .stats-table th, .stats-table td { padding: 10px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .stats-table th { color: #3498db; font-size: 14px; }
+        #leaderboardModal h3 { margin-top: 0; text-align: center; color: #00ffff; font-size: 16px; }
+        .stats-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .stats-table th, .stats-table td { padding: 6px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 12px; }
+
+        /* صندوق الشات والإشعارات */
+        #chatContainer {
+            position: absolute; bottom: 20px; left: 20px; width: 220px;
+            background: rgba(6, 2, 15, 0.85); border-radius: 10px; padding: 8px;
+            display: flex; flex-direction: column; z-index: 5; border: 1px solid rgba(0,255,255,0.2);
+        }
+        #chatArea { height: 100px; overflow-y: auto; color: #fff; font-size: 11px; margin-bottom: 5px; text-align: right; direction: rtl; }
+        .chat-msg { margin: 3px 0; }
+        .chat-sys { color: #00ffff; font-weight: bold; }
+        #chatInput { padding: 6px; font-size: 11px; width: 100%; background: rgba(255,255,255,0.1); color: #fff; border: 1px solid #444; border-radius: 5px; box-sizing: border-box; }
 
         #minimapCanvas {
-            position: absolute; top: 20px; right: 20px;
-            width: 130px; height: 130px; border-radius: 50%;
+            position: absolute; top: 15px; right: 15px;
+            width: 120px; height: 120px; border-radius: 50%;
             border: 2px solid #00ffff; background: rgba(10, 5, 20, 0.85); z-index: 4;
         }
 
         #crosshair {
-            position: absolute; top: 50%; left: 50%; width: 10px; height: 10px;
+            position: absolute; top: 50%; left: 50%; width: 8px; height: 8px;
             transform: translate(-50%, -50%); pointer-events: none; z-index: 6;
         }
         #crosshair::before, #crosshair::after { content: ''; position: absolute; background: #00ffff; }
-        #crosshair::before { top: 4px; left: -8px; width: 26px; height: 2px; }
-        #crosshair::after { top: -8px; left: 4px; width: 2px; height: 26px; }
+        #crosshair::before { top: 3px; left: -6px; width: 20px; height: 2px; }
+        #crosshair::after { top: -6px; left: 3px; width: 2px; height: 20px; }
 
-        .touch-controls { position: absolute; bottom: 30px; left: 20px; right: 20px; display: flex; justify-content: space-between; pointer-events: none; z-index: 5; }
-        .joystick-zone { width: 110px; height: 110px; border: 2px dashed rgba(52, 152, 219, 0.4); border-radius: 50%; display: flex; justify-content: center; align-items: center; pointer-events: auto; }
-        .joystick-stick { width: 45px; height: 45px; background: linear-gradient(135deg, #3498db, #9b59b6); border-radius: 50%; }
-        .fire-btn { width: 80px; height: 80px; background: linear-gradient(135deg, #e74c3c, #c0392b); border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-weight: 900; pointer-events: auto; }
+        .touch-controls { position: absolute; bottom: 20px; left: 20px; right: 20px; display: flex; justify-content: space-between; align-items: flex-end; pointer-events: none; z-index: 5; }
+        .joystick-zone { width: 100px; height: 100px; border: 2px dashed rgba(52, 152, 219, 0.4); border-radius: 50%; display: flex; justify-content: center; align-items: center; pointer-events: auto; }
+        .joystick-stick { width: 40px; height: 40px; background: linear-gradient(135deg, #3498db, #9b59b6); border-radius: 50%; }
+        .touch-action-btns { display: flex; gap: 10px; pointer-events: auto; }
+        .fire-btn { width: 70px; height: 70px; background: linear-gradient(135deg, #e74c3c, #c0392b); border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-weight: 900; font-size: 13px; }
+        .jump-btn { width: 55px; height: 55px; background: linear-gradient(135deg, #2ecc71, #27ae60); border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-weight: 900; font-size: 12px; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
@@ -103,23 +98,26 @@
 <div id="mainMenu">
     <div class="menu-card">
         <h1>THE WAR</h1>
-        <input type="text" id="playerName" placeholder="أدخل اسمك المقاتل..." maxlength="12">
-        <button id="startBtn">دخول المعركة</button>
+        <input type="text" id="playerName" placeholder="أدخل اسم المقاتل..." maxlength="12">
+        <button id="startBtn">دخول الساحة</button>
     </div>
 </div>
 
 <div id="gameWrapper">
-    <div id="notificationContainer"></div>
-
     <div id="crosshair"></div>
-    <canvas id="minimapCanvas" width="130" height="130"></canvas>
+    <canvas id="minimapCanvas" width="120" height="120"></canvas>
 
     <div id="healthUI">
         <div>الصحة (HP)</div>
         <div class="hp-bar-container"><div id="hpBarFill"></div></div>
     </div>
 
-    <button id="tabBtn" onclick="toggleLeaderboard()">📊 القائمة (TAB)</button>
+    <button id="tabBtn" onclick="toggleLeaderboard()">📊 TAB</button>
+
+    <div id="chatContainer">
+        <div id="chatArea"></div>
+        <input type="text" id="chatInput" placeholder="اكتب رسالة اضغط Enter..." maxlength="50">
+    </div>
 
     <div id="weaponUI">
         <div id="currentWeaponText">السلاح: سكين 🗡️</div>
@@ -131,17 +129,16 @@
     </div>
 
     <div id="leaderboardModal">
-        <h2>🏆 جدول القتلات والوفيات</h2>
+        <h3>🏆 قائمة الإحصائيات</h3>
         <table class="stats-table">
             <thead>
                 <tr>
                     <th>المقاتل</th>
-                    <th>القتلات (K)</th>
-                    <th>الوفيات (D)</th>
+                    <th>القتلات</th>
+                    <th>الوفيات</th>
                 </tr>
             </thead>
-            <tbody id="leaderboardBody">
-                </tbody>
+            <tbody id="leaderboardBody"></tbody>
         </table>
     </div>
 </div>
@@ -150,7 +147,10 @@
     <div class="joystick-zone" id="joyZone">
         <div class="joystick-stick" id="joyStick"></div>
     </div>
-    <div class="fire-btn" id="fireBtn">هجوم</div>
+    <div class="touch-action-btns">
+        <div class="jump-btn" id="jumpBtn">🦘 قفز</div>
+        <div class="fire-btn" id="fireBtn">هجوم</div>
+    </div>
 </div>
 
 <script>
@@ -159,15 +159,25 @@
 
     let scene, camera, renderer;
     let obstacleBoxes = [];
-    let otherPlayers = {}; // تخزين لاعبي الأونلاين والمجسمات
+    let otherPlayers = {};
     let fpWeaponGroup;
     let currentKnifeMesh, currentPistolMesh, currentRifleMesh;
 
     let myPlayerName = "مقاتل";
     const movement = { up: false, down: false, left: false, right: false };
-    let myPlayerPos = { x: 750, y: 750 };
+    let myPlayerPos = { x: 1250, y: 1250 };
     let playerYaw = 0;
     let myKills = 0, myDeaths = 0;
+
+    // ميكانيكية القفز والفيزياء
+    let playerY = 34;
+    let velocityY = 0;
+    let isGrounded = true;
+    const gravity = -0.6;
+    const jumpPower = 11;
+
+    // الصوتيات باستخدام Web Audio API
+    let audioCtx;
 
     const WEAPONS = {
         1: { name: "سكين 🗡️", cd: 400 },
@@ -177,34 +187,75 @@
     let currentWeaponId = 1;
     let lastAttackTime = 0;
 
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+    }
+
+    function playSound(type) {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (type === 'shoot') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.15);
+        } else if (type === 'knife') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        } else if (type === 'jump') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.12);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.12);
+        }
+    }
+
     function init3D() {
         const container = document.getElementById('gameWrapper');
         scene = new THREE.Scene();
-        scene.background = new THREE.Color('#070314'); 
-        scene.fog = new THREE.FogExp2('#070314', 0.0005);
+        scene.background = new THREE.Color('#120a2a'); // خريطة أسطع ومضيئة
+        scene.fog = new THREE.FogExp2('#120a2a', 0.0003);
 
-        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 4000);
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 6000);
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         container.appendChild(renderer.domElement);
 
-        scene.add(new THREE.AmbientLight(0xffffff, 1.2));
-        const dirLight = new THREE.DirectionalLight(0xa29bfe, 0.9);
-        dirLight.position.set(1000, 1500, 1000);
+        // إضاءة قوية ومضيئة
+        const ambLight = new THREE.AmbientLight(0xffffff, 1.8);
+        scene.add(ambLight);
+        const dirLight = new THREE.DirectionalLight(0xdcd6ff, 1.2);
+        dirLight.position.set(1500, 2500, 1500);
         scene.add(dirLight);
 
-        // خريطة الأرضية
-        const floor = new THREE.Mesh(
-            new THREE.PlaneGeometry(3000, 3000),
-            new THREE.MeshStandardMaterial({ color: 0x0a0518, roughness: 0.4 })
-        );
+        // خريطة أكبر بقيمة 5000 x 5000
+        const floorGeo = new THREE.PlaneGeometry(5000, 5000);
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0x1a0f35, roughness: 0.3 });
+        const floor = new THREE.Mesh(floorGeo, floorMat);
         floor.rotation.x = -Math.PI / 2;
-        floor.position.set(750, 0, 750);
+        floor.position.set(1250, 0, 1250);
         scene.add(floor);
 
-        const gridHelper = new THREE.GridHelper(3000, 80, 0x00ffff, 0x8e44ad);
-        gridHelper.position.set(750, 0.6, 750);
+        const gridHelper = new THREE.GridHelper(5000, 100, 0x00ffff, 0x8e44ad);
+        gridHelper.position.set(1250, 0.6, 1250);
         scene.add(gridHelper);
 
         fpWeaponGroup = new THREE.Group();
@@ -218,45 +269,28 @@
         window.addEventListener('mousemove', (e) => {
             if (document.pointerLockElement === document.body || e.buttons === 1) {
                 playerYaw -= e.movementX * 0.003;
-                broadcastMovement();
             }
         });
 
         window.addEventListener('resize', onWindowResize);
         setupTouchEvents();
+        setupChatInput();
         animate();
     }
 
-    // بناء شكل لاعبي الأونلاين (3D Player Character)
-    function createPlayerModel(name) {
+    function createPlayerModel() {
         const group = new THREE.Group();
-
-        // الجذع/الجسم
-        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x3498db, metalness: 0.5 });
-        const body = new THREE.Mesh(new THREE.BoxGeometry(10, 22, 6), bodyMat);
+        const body = new THREE.Mesh(new THREE.BoxGeometry(10, 22, 6), new THREE.MeshStandardMaterial({ color: 0x3498db }));
         body.position.y = 11;
         group.add(body);
 
-        // الرأس والخوذة
-        const headMat = new THREE.MeshStandardMaterial({ color: 0x222233 });
-        const head = new THREE.Mesh(new THREE.BoxGeometry(7, 7, 7), headMat);
+        const head = new THREE.Mesh(new THREE.BoxGeometry(7, 7, 7), new THREE.MeshStandardMaterial({ color: 0x222233 }));
         head.position.y = 26;
         group.add(head);
 
-        // قناع النيون
         const visor = new THREE.Mesh(new THREE.BoxGeometry(5.5, 2, 1), new THREE.MeshBasicMaterial({ color: 0x00ffff }));
         visor.position.set(0, 26.5, -3.6);
         group.add(visor);
-
-        // الأذرع
-        const armMat = new THREE.MeshStandardMaterial({ color: 0x1f1938 });
-        const leftArm = new THREE.Mesh(new THREE.BoxGeometry(3, 16, 3), armMat);
-        leftArm.position.set(-7, 13, 0);
-        group.add(leftArm);
-
-        const rightArm = new THREE.Mesh(new THREE.BoxGeometry(3, 16, 3), armMat);
-        rightArm.position.set(7, 13, 0);
-        group.add(rightArm);
 
         return group;
     }
@@ -264,7 +298,6 @@
     function buildDetailedWeapons() {
         const darkMat = new THREE.MeshStandardMaterial({ color: 0x1a1a24, metalness: 0.8 });
         const metalMat = new THREE.MeshStandardMaterial({ color: 0x888899, metalness: 0.9 });
-        const neonMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
 
         currentKnifeMesh = new THREE.Group();
         const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 4, 12), darkMat);
@@ -313,20 +346,20 @@
     }
 
     function buildExpandedMap() {
-        const towerMat = new THREE.MeshStandardMaterial({ color: 0x2c1a4d, metalness: 0.8 });
-        const tower = new THREE.Mesh(new THREE.CylinderGeometry(40, 60, 300, 16), towerMat);
-        tower.position.set(750, 150, 750);
+        const towerMat = new THREE.MeshStandardMaterial({ color: 0x3d2366, metalness: 0.6 });
+        const tower = new THREE.Mesh(new THREE.CylinderGeometry(50, 70, 350, 16), towerMat);
+        tower.position.set(1250, 175, 1250);
         scene.add(tower);
-        addObstacleBox(750, 750, 100, 100);
+        addObstacleBox(1250, 1250, 120, 120);
 
-        for (let i = 0; i < 30; i++) {
-            let rx = Math.random() * 2400 - 450;
-            let rz = Math.random() * 2400 - 450;
-            let w = Math.random() * 120 + 60;
-            let h = Math.random() * 120 + 60;
+        for (let i = 0; i < 45; i++) {
+            let rx = Math.random() * 4000 - 750;
+            let rz = Math.random() * 4000 - 750;
+            let w = Math.random() * 140 + 60;
+            let h = Math.random() * 140 + 60;
 
-            const box = new THREE.Mesh(new THREE.BoxGeometry(w, 60, h), towerMat);
-            box.position.set(rx, 30, rz);
+            const box = new THREE.Mesh(new THREE.BoxGeometry(w, 70, h), towerMat);
+            box.position.set(rx, 35, rz);
             scene.add(box);
             addObstacleBox(rx, rz, w, h);
         }
@@ -343,13 +376,12 @@
         return false;
     }
 
-    // أونلاين: إدارات الأحداث المتبادلة
     function setupSocketListeners() {
         if (!socket) return;
 
         socket.on('playerJoined', (data) => {
-            showNotification(`🎮 انضم ${data.name} إلى المعركة!`);
-            let pModel = createPlayerModel(data.name);
+            addChatMessage(`🎮 انضم المقاتل ${data.name} إلى الساحة!`, true);
+            let pModel = createPlayerModel();
             pModel.position.set(data.x, 0, data.y);
             scene.add(pModel);
             otherPlayers[data.id] = { mesh: pModel, name: data.name, kills: 0, deaths: 0 };
@@ -358,32 +390,46 @@
 
         socket.on('playerLeft', (id) => {
             if (otherPlayers[id]) {
-                showNotification(`🚪 غادر ${otherPlayers[id].name} اللعبة`);
+                addChatMessage(`🚪 غادر المقاتل ${otherPlayers[id].name} المعركة`, true);
                 scene.remove(otherPlayers[id].mesh);
                 delete otherPlayers[id];
                 updateLeaderboardUI();
             }
         });
 
-        socket.on('playerMoved', (data) => {
-            if (otherPlayers[data.id]) {
-                otherPlayers[data.id].mesh.position.set(data.x, 0, data.y);
-                otherPlayers[data.id].mesh.rotation.y = data.yaw;
+        socket.on('chatMessage', (data) => {
+            addChatMessage(`${data.name}: ${data.msg}`, false);
+        });
+    }
+
+    function setupChatInput() {
+        const input = document.getElementById('chatInput');
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && input.value.trim() !== '') {
+                const msg = input.value.trim();
+                addChatMessage(`${myPlayerName}: ${msg}`, false);
+                if (socket) socket.emit('chatMessage', { name: myPlayerName, msg: msg });
+                input.value = '';
+                input.blur();
             }
         });
     }
 
-    function broadcastMovement() {
-        if (socket) socket.emit('move', { x: myPlayerPos.x, y: myPlayerPos.y, yaw: playerYaw });
+    function addChatMessage(msg, isSys) {
+        const area = document.getElementById('chatArea');
+        const div = document.createElement('div');
+        div.className = 'chat-msg' + (isSys ? ' chat-sys' : '');
+        div.innerText = msg;
+        area.appendChild(div);
+        area.scrollTop = area.scrollHeight;
     }
 
-    function showNotification(msg) {
-        const container = document.getElementById('notificationContainer');
-        const toast = document.createElement('div');
-        toast.className = 'notif-toast';
-        toast.innerText = msg;
-        container.appendChild(toast);
-        setTimeout(() => toast.remove(), 4000);
+    function performJump() {
+        if (isGrounded) {
+            velocityY = jumpPower;
+            isGrounded = false;
+            playSound('jump');
+        }
     }
 
     function toggleLeaderboard() {
@@ -394,17 +440,10 @@
 
     function updateLeaderboardUI() {
         const tbody = document.getElementById('leaderboardBody');
-        tbody.innerHTML = '';
-
-        // اضافة اسمي أولاً
-        let myRow = `<tr><td>${myPlayerName} (أنت)</td><td>${myKills}</td><td>${myDeaths}</td></tr>`;
-        tbody.innerHTML += myRow;
-
-        // إضافة باقي لاعبي الأونلاين
+        tbody.innerHTML = `<tr><td>${myPlayerName} (أنت)</td><td>${myKills}</td><td>${myDeaths}</td></tr>`;
         for (let id in otherPlayers) {
             let p = otherPlayers[id];
-            let row = `<tr><td>${p.name}</td><td>${p.kills}</td><td>${p.deaths}</td></tr>`;
-            tbody.innerHTML += row;
+            tbody.innerHTML += `<tr><td>${p.name}</td><td>${p.kills}</td><td>${p.deaths}</td></tr>`;
         }
     }
 
@@ -413,10 +452,7 @@
         const joyStick = document.getElementById('joyStick');
         let touchId = null;
 
-        joyZone.addEventListener('touchstart', (e) => {
-            touchId = e.changedTouches[0].identifier;
-        });
-
+        joyZone.addEventListener('touchstart', (e) => { touchId = e.changedTouches[0].identifier; });
         joyZone.addEventListener('touchmove', (e) => {
             for (let t of e.changedTouches) {
                 if (t.identifier === touchId) {
@@ -424,12 +460,12 @@
                     let dx = t.clientX - (rect.left + rect.width / 2);
                     let dy = t.clientY - (rect.top + rect.height / 2);
                     
-                    movement.up = dy < -10;
-                    movement.down = dy > 10;
-                    movement.left = dx < -10;
-                    movement.right = dx > 10;
+                    movement.up = dy < -8;
+                    movement.down = dy > 8;
+                    movement.left = dx < -8;
+                    movement.right = dx > 8;
 
-                    joyStick.style.transform = `translate(${dx*0.4}px, ${dy*0.4}px)`;
+                    joyStick.style.transform = `translate(${dx*0.3}px, ${dy*0.3}px)`;
                 }
             }
         });
@@ -441,10 +477,11 @@
 
         joyZone.addEventListener('touchend', resetJoy);
         document.getElementById('fireBtn').addEventListener('touchstart', performAttack);
+        document.getElementById('jumpBtn').addEventListener('touchstart', performJump);
     }
 
     function handleFPSMovement() {
-        let speed = 4.5;
+        let speed = 5.0;
         let dx = 0, dz = 0;
 
         if (movement.up) { dx += Math.sin(playerYaw); dz -= Math.cos(playerYaw); }
@@ -452,17 +489,22 @@
         if (movement.left) { dx -= Math.cos(playerYaw); dz -= Math.sin(playerYaw); }
         if (movement.right) { dx += Math.cos(playerYaw); dz += Math.sin(playerYaw); }
 
-        if (dx !== 0 || dz !== 0) {
-            let nextX = myPlayerPos.x + dx * speed;
-            let nextZ = myPlayerPos.y + dz * speed;
+        let nextX = myPlayerPos.x + dx * speed;
+        let nextZ = myPlayerPos.y + dz * speed;
 
-            if (!checkCollision(nextX, myPlayerPos.y)) myPlayerPos.x = nextX;
-            if (!checkCollision(myPlayerPos.x, nextZ)) myPlayerPos.y = nextZ;
+        if (!checkCollision(nextX, myPlayerPos.y)) myPlayerPos.x = nextX;
+        if (!checkCollision(myPlayerPos.x, nextZ)) myPlayerPos.y = nextZ;
 
-            broadcastMovement();
+        // تطبيق فيزياء القفز والجاذبية
+        velocityY += gravity;
+        playerY += velocityY;
+        if (playerY <= 34) {
+            playerY = 34;
+            velocityY = 0;
+            isGrounded = true;
         }
 
-        camera.position.set(myPlayerPos.x, 34, myPlayerPos.y);
+        camera.position.set(myPlayerPos.x, playerY, myPlayerPos.y);
         camera.rotation.y = playerYaw;
     }
 
@@ -472,9 +514,12 @@
         if (now - lastAttackTime < weapon.cd) return;
         lastAttackTime = now;
 
+        if (currentWeaponId === 1) playSound('knife');
+        else playSound('shoot');
+
         if (fpWeaponGroup) {
-            fpWeaponGroup.position.z -= 1.0;
-            setTimeout(() => { fpWeaponGroup.position.z = 0; }, 80);
+            fpWeaponGroup.position.z -= 0.8;
+            setTimeout(() => { fpWeaponGroup.position.z = 0; }, 70);
         }
     }
 
@@ -484,7 +529,7 @@
         const ctx = canvas.getContext('2d');
         const cx = canvas.width / 2;
         const cy = canvas.height / 2;
-        const scale = 0.05;
+        const scale = 0.03;
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -492,24 +537,12 @@
         obstacleBoxes.forEach(b => {
             let relX = ((b.minX + b.maxX)/2 - myPlayerPos.x) * scale;
             let relZ = ((b.minZ + b.maxZ)/2 - myPlayerPos.y) * scale;
-            ctx.fillRect(cx + relX - 3, cy + relZ - 3, 6, 6);
+            ctx.fillRect(cx + relX - 2, cy + relZ - 2, 4, 4);
         });
 
-        // رسم لاعبي الأونلاين بنقاط حمراء
-        ctx.fillStyle = '#e74c3c';
-        for (let id in otherPlayers) {
-            let pos = otherPlayers[id].mesh.position;
-            let relX = (pos.x - myPlayerPos.x) * scale;
-            let relZ = (pos.z - myPlayerPos.y) * scale;
-            ctx.beginPath();
-            ctx.arc(cx + relX, cy + relZ, 3, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
-        // موقعك
         ctx.fillStyle = '#00ffff';
         ctx.beginPath();
-        ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+        ctx.arc(cx, cy, 3, 0, Math.PI * 2);
         ctx.fill();
     }
 
@@ -521,6 +554,7 @@
     }
 
     document.getElementById('startBtn').addEventListener('click', function() {
+        initAudio();
         const nameInput = document.getElementById('playerName');
         myPlayerName = nameInput.value.trim() || "مقاتل";
 
@@ -535,19 +569,19 @@
         }
 
         init3D();
-        showNotification(`🔥 أهلاً بك ${myPlayerName} في الساحة!`);
+        addChatMessage(`🔥 مرحباً بك ${myPlayerName} في الساحة!`, true);
     });
 
     document.addEventListener('keydown', (e) => {
+        if (document.activeElement.id === 'chatInput') return;
+
         if (['KeyW', 'ArrowUp'].includes(e.code) || e.key === 'w' || e.key === 'W') movement.up = true;
         if (['KeyS', 'ArrowDown'].includes(e.code) || e.key === 's' || e.key === 'S') movement.down = true;
         if (['KeyA', 'ArrowLeft'].includes(e.code) || e.key === 'a' || e.key === 'A') movement.left = true;
         if (['KeyD', 'ArrowRight'].includes(e.code) || e.key === 'd' || e.key === 'D') movement.right = true;
 
-        if (e.code === 'Tab') {
-            e.preventDefault();
-            toggleLeaderboard();
-        }
+        if (e.code === 'Space') performJump();
+        if (e.code === 'Tab') { e.preventDefault(); toggleLeaderboard(); }
         if (e.code === 'Digit1') selectWeapon(1);
         if (e.code === 'Digit2') selectWeapon(2);
         if (e.code === 'Digit3') selectWeapon(3);
@@ -561,7 +595,7 @@
     });
 
     window.addEventListener('click', (e) => {
-        if (e.target.tagName === 'INPUT' || e.target.closest('#weaponUI') || e.target.closest('#tabBtn')) return;
+        if (e.target.tagName === 'INPUT' || e.target.closest('#weaponUI') || e.target.closest('#tabBtn') || e.target.closest('#chatContainer')) return;
         performAttack();
     });
 
